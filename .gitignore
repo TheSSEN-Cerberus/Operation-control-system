@@ -1,0 +1,130 @@
+﻿## ================================
+## Visual Studio / .NET / WPF 기본
+## ================================
+
+# 사용자별 설정 파일
+.vs/
+*.user
+*.userosscache
+*.suo
+*.userprefs
+*.rsuser
+
+# 빌드 결과물
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+TestResults/
+[Bb]uild/
+*.cache
+*.dbmdl
+
+# WPF / XAML 관련
+*.xaml.cs.bak
+*.g.cs
+*.g.i.cs
+*.baml
+
+# 프로젝트 관련
+*.ncb
+*.opendb
+*.VC.db
+*.VC.VC.opendb
+*.idb
+*.pdb
+
+# NuGet 패키지
+*.nupkg
+*.snupkg
+packages/
+.nuget/
+project.lock.json
+project.fragment.lock.json
+
+# Entity Framework / SQLite
+*.mdf
+*.ldf
+*.db
+*.sqlite
+*.sqlite3
+
+# Publish 관련
+publish/
+*.Publish.xml
+app.publish/
+*.pubxml
+*.pubxml.user
+*.psess
+
+# Visual Studio generated files
+*.VC.db
+*.VC.opendb
+
+# MSBuild / Temp
+*.tmp
+*.log
+*.tlog
+*.lastcodeanalysissucceeded
+
+# Test / Coverage
+TestResult.xml
+*.coverage
+*.coveragexml
+
+# Resharper / Rider
+_ReSharper*/
+*.DotSettings.user
+.idea/
+*.sln.iml
+
+# StyleCop / Analyzer
+*.StyleCopCache
+*.sarif
+
+# System / OS Files
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Rider / JetBrains / Visual Studio Code
+.vscode/
+.idea/
+
+# Backup files
+*~
+*.bak
+*.tmp
+*.swp
+*.orig
+
+# Temporary generated docs
+docfx/
+docs/_site/
+
+# WPF 영상/로그/프레임 기록 관련 (당신 프로젝트 특화)
+*.csv
+*.mp4
+*.h264
+*.mkv
+recordings/
+logs/
+frames/
+temp/
+cache/
+
+# Python, Node 등 다른 툴 혼용 대비
+__pycache__/
+node_modules/
+dist/
+
+# Ignore DS_Store (mac)
+.DS_Store
+
+# Ignore environmental settings
+*.env
+.env.*
+
+# Ignore Test artifacts
+*.trx
+*.VisualState.xml
