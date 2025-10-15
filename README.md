@@ -12,3 +12,9 @@
 - main : 안정 릴리즈
 - develop : 개발 통합
 - feature/* : 기능 구현 단위
+
+## 설치 패키지
+- Microsoft.Extensions.Configuration 8.0
+- Microsoft.Extensions.Configuration.FileExtensions 8.0
+- Microsoft.Extensions.Configuration.Json 8.0
+- Microsoft.Extensions.Configuration.Binder 8.0
