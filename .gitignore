@@ -128,3 +128,6 @@ dist/
 # Ignore Test artifacts
 *.trx
 *.VisualState.xml
+
+# 환경설정 파일
+appsettings.json
