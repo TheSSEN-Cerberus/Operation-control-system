@@ -124,27 +124,39 @@
                 <Separator Margin="0,5"/>
 
                 <!-- 3행: IMU 상태 -->
-                <GroupBox Header="IMU 상태 (Zybo Z7-10)" Margin="0,0,0,10">
+                <!-- 3행: 추적 상태 및 격발 결과 -->
+                <GroupBox Header="표적 추적 및 격발 상태" Margin="0,0,0,10">
                     <Grid>
                         <Grid.RowDefinitions>
-                            <RowDefinition/>
-                            <RowDefinition/>
-                            <RowDefinition/>
-                            <RowDefinition/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
 
-                        <TextBlock Text="Roll:" Grid.Row="0" Grid.Column="0" Margin="5"/>
-                        <TextBlock Text="{Binding IMU.Roll, StringFormat={}{0:F1}°}" Grid.Row="0" Grid.Column="1" Margin="5"/>
-                        <TextBlock Text="Pitch:" Grid.Row="1" Grid.Column="0" Margin="5"/>
-                        <TextBlock Text="{Binding IMU.Pitch, StringFormat={}{0:F1}°}" Grid.Row="1" Grid.Column="1" Margin="5"/>
-                        <TextBlock Text="Yaw:" Grid.Row="2" Grid.Column="0" Margin="5"/>
-                        <TextBlock Text="{Binding IMU.Yaw, StringFormat={}{0:F1}°}" Grid.Row="2" Grid.Column="1" Margin="5"/>
-                        <TextBlock Text="Accel:" Grid.Row="3" Grid.Column="0" Margin="5"/>
-                        <TextBlock Text="{Binding IMU.AccelText}" Grid.Row="3" Grid.Column="1" Margin="5"/>
+                        <!-- 추적 중인 객체 ID -->
+                        <TextBlock Text="추적 객체 ID:" Grid.Row="0" Grid.Column="0" Margin="5"/>
+                        <TextBlock Text="{Binding Control.TrackedTargetId}" 
+                   Grid.Row="0" Grid.Column="1" Margin="5"/>
+
+                        <!-- 격발 가능 상태 -->
+                        <TextBlock Text="격발 가능:" Grid.Row="1" Grid.Column="0" Margin="5"/>
+                        <TextBlock Text="{Binding Control.CanFire, Converter={StaticResource BoolToTextConverter}}" 
+                   Grid.Row="1" Grid.Column="1" Margin="5"/>
+
+                        <!-- 격발 결과 선택 -->
+                        <TextBlock Text="격발 결과:" Grid.Row="2" Grid.Column="0" Margin="5"/>
+                        <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal" Margin="5">
+                            <Button Content="HIT" Width="60" Margin="2"
+                    Command="{Binding Control.ConfirmKillCommand}"
+                    CommandParameter="true"/>
+                            <Button Content="MISS" Width="60" Margin="2"
+                    Command="{Binding Control.ConfirmKillCommand}"
+                    CommandParameter="false"/>
+                        </StackPanel>
                     </Grid>
                 </GroupBox>
 
