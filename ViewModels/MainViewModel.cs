@@ -7,7 +7,6 @@ namespace Operation_Control_System.ViewModels
         public NetworkViewModel Network { get; set; } = new();
         public ControlViewModel Control { get; set; } = new();
         public MapViewModel Map { get; set; } = new();
-        public IMUViewModel IMU { get; set; } = new();
         public VideoStreamViewModel VideoStream { get; set; } = new();
 
     }
