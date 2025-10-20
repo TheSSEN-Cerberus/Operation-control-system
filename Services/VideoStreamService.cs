@@ -4,45 +4,55 @@ using System;
 using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Media.Imaging;
+using GstApp = Gst.Application;
+using WpfApp = System.Windows.Application;
 
 namespace Operation_Control_System.Services
 {
     public sealed class VideoStreamService : IDisposable
     {
         private Pipeline? _pipeline;
-        private AppSink? _appSink;
+        private AppSink? _sink;
+        private static bool _gstInitialized;
 
         public event Action<BitmapSource>? FrameArrived;
 
-        private static bool _gstInited;
-
         public VideoStreamService()
         {
-            if (!_gstInited)
+            Console.WriteLine("hello");
+            Environment.SetEnvironmentVariable("GST_DEBUG", "3");
+            if (!_gstInitialized)
             {
-                Gst.Application.Init();
-                _gstInited = true;
+                GstApp.Init();
+                _gstInitialized = true;
+                Console.WriteLine("[GStreamer] Initialized.");
             }
         }
 
-        public void Start(int udpPort = 5600)
+        public void Start(int udpPort = 5601)
         {
             Stop();
 
-            string caps = "application/x-rtp, media=video, encoding-name=H264, payload=96, clock-rate=90000";
+            try
+            {
+                _pipeline = Parse.Launch("videotestsrc is-live=true ! videoconvert ! video/x-raw,format=BGR ! appsink name=sink emit-signals=true sync=false") as Pipeline;
 
-            string pipelineDesc =
-                $"udpsrc port={udpPort} caps=\"{caps}\" ! rtpjitterbuffer ! rtph264depay ! " +
-                $"h264parse ! avdec_h264 ! videoconvert ! video/x-raw,format=BGR ! appsink name=appsink emit-signals=true sync=false max-buffers=1 drop=true";
+                if (_pipeline == null)
+                {
+                    Console.WriteLine("[GStreamer] ❌ Parse.Launch failed. Check pipeline string.");
+                }
+                else
+                {
+                    Console.WriteLine("[GStreamer] ✅ Pipeline created successfully.");
+                }
 
-            _pipeline = (Pipeline)Parse.Launch(pipelineDesc);
-            _appSink = (AppSink)_pipeline.GetChildByName("appsink");
-
-            // ✅ gstreamer-sharp-netcore 0.08은 이 형태로 이벤트 등록
-            _appSink.NewSample += OnNewSample;
-
-            _pipeline.SetState(State.Playing);
-            Console.WriteLine("[GStreamer] Pipeline started.");
+                _sink.NewSample += OnNewSample;
+                _pipeline.SetState(State.Playing);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[VideoStream ERROR] {ex.Message}");
+            }
         }
 
         private void OnNewSample(object o, NewSampleArgs args)
@@ -55,6 +65,7 @@ namespace Operation_Control_System.Services
             var buffer = sample.Buffer;
             var caps = sample.Caps;
             var s = caps.GetStructure(0);
+
             s.GetInt("width", out int width);
             s.GetInt("height", out int height);
 
@@ -64,63 +75,65 @@ namespace Operation_Control_System.Services
                 return;
             }
 
-            buffer.Map(out MapInfo map, MapFlags.Read);
-            try
+            if (buffer.Map(out MapInfo map, MapFlags.Read))
             {
-                if (map.Data == null || map.Data.Length == 0)
-                    return;
-
-                int stride = width * 3;
-                int size = stride * height;
-
-                // ✅ byte[] → unmanaged memory(IntPtr)
-                IntPtr unmanagedPtr = Marshal.AllocHGlobal(size);
-                Marshal.Copy(map.Data, 0, unmanagedPtr, size);
-
-                System.Windows.Application.Current.Dispatcher.Invoke(() =>
+                try
                 {
-                    try
-                    {
-                        var bmp = BitmapSource.Create(
-                            width, height, 96, 96,
-                            System.Windows.Media.PixelFormats.Bgr24,
-                            null,
-                            unmanagedPtr,
-                            size,
-                            stride);
+                    int stride = width * 3;
+                    IntPtr unmanaged = Marshal.AllocHGlobal((int)map.Size);
+                    Marshal.Copy(map.Data, 0, unmanaged, (int)map.Size);
 
-                        FrameArrived?.Invoke(bmp);
-                    }
-                    finally
+                    WpfApp.Current.Dispatcher.Invoke(() =>
                     {
-                        Marshal.FreeHGlobal(unmanagedPtr);
-                    }
-                });
+                        try
+                        {
+                            var bmp = BitmapSource.Create(
+                                width, height, 96, 96,
+                                System.Windows.Media.PixelFormats.Bgr24,
+                                null,
+                                unmanaged,
+                                (int)map.Size,
+                                stride);
+                            FrameArrived?.Invoke(bmp);
+                        }
+                        finally
+                        {
+                            Marshal.FreeHGlobal(unmanaged);
+                        }
+                    });
+                }
+                finally
+                {
+                    buffer.Unmap(map);
+                }
             }
-            finally
-            {
-                buffer.Unmap(map);
-                sample.Dispose();
-            }
+
+            sample.Dispose();
         }
 
         public void Stop()
         {
             try
             {
-                if (_appSink != null)
+                if (_sink != null)
                 {
-                    _appSink.NewSample -= OnNewSample;
-                    _appSink = null;
+                    _sink.NewSample -= OnNewSample;
+                    _sink = null;
                 }
+
                 if (_pipeline != null)
                 {
                     _pipeline.SetState(State.Null);
                     _pipeline.Dispose();
                     _pipeline = null;
                 }
+
+                Console.WriteLine("[GStreamer] Pipeline stopped.");
             }
-            catch { /* ignore */ }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Stop ERROR] {ex.Message}");
+            }
         }
 
         public void Dispose() => Stop();
