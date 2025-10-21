@@ -43,12 +43,12 @@ namespace Operation_Control_System.ViewModels
             {
                 try
                 {
-                    _videoService.Start(port);
-                    Console.WriteLine($"[VideoStream] Listening on UDP {port}");
+                    _videoService.Start(port, true);
+                    System.Diagnostics.Debug.WriteLine($"[VideoStream] Listening on UDP {port}");
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"[VideoStream] Error starting: {ex.Message}");
+                    System.Diagnostics.Debug.WriteLine($"[VideoStream] Error starting: {ex.Message}");
                 }
             });
         }

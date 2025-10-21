@@ -11,7 +11,7 @@ namespace Operation_Control_System.ViewModels
         public MainViewModel()
         {
             // ✅ 프로그램 시작 시 자동으로 영상 수신 시작
-            //_ = VideoStream.StartAsync(port: 5600);
+            _ = VideoStream.StartAsync(port: 5600);
         }
     }
 }
