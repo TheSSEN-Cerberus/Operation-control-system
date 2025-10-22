@@ -1,159 +1,153 @@
 ﻿using Gst;
 using Gst.App;
 using System;
-using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Media.Imaging;
-using GstApp = Gst.Application;
-using WpfApp = System.Windows.Application;
+using System.Windows.Threading;
 
 namespace Operation_Control_System.Services
 {
     /// <summary>
-    /// GStreamer 기반 영상 수신 및 프레임 전달 서비스 (.NET 8 안정화 버전)
+    /// MainWindow 코드와 동일한 구조의 GStreamer 영상 수신 서비스
+    /// DispatcherTimer 기반 GLib 루프 + AppSink (H.264 → BGRx)
     /// </summary>
     public sealed class VideoStreamService : IDisposable
     {
         private Pipeline? _pipeline;
-        private AppSink? _sink;
+        private AppSink? _appsink;
+        private DispatcherTimer? _glibTimer;
+
         private static bool _gstInitialized;
+        private bool _isRunning = false;
 
         public event Action<BitmapSource>? FrameArrived;
 
         public VideoStreamService()
         {
-            //if (!_gstInitialized)
-            //{
-            //    GstApp.Init();
-            //    _gstInitialized = true;
-            //    System.Diagnostics.Debug.WriteLine("[GStreamer] ✅ Initialized (.NET 8)");
-            //    Console.WriteLine("[GStreamer] ✅ Initialized (.NET 8)");
-            //}
-
-            if (!_gstInitialized)
-            {
-                // ✅ GStreamer 플러그인 경로를 명시적으로 지정
-                Environment.SetEnvironmentVariable(
-                    "GST_PLUGIN_PATH",
-                    @"C:\Program Files\gstreamer\1.0\x86_64\lib\gstreamer-1.0"
-                );
-                Environment.SetEnvironmentVariable(
-                    "PATH",
-                    Environment.GetEnvironmentVariable("PATH") + @";C:\Program Files\gstreamer\1.0\msvc_x86_64\bin"
-                );
-
-                Environment.SetEnvironmentVariable("GST_DEBUG", "3");
-
-                GstApp.Init();
-                _gstInitialized = true;
-                Console.WriteLine("[GStreamer] ✅ Initialized (.NET 8)");
-            }
+            InitGStreamer();
         }
 
         /// <summary>
-        /// 영상 스트림 시작 (기본: videotestsrc, 실제 사용 시 udpsrc 파이프라인으로 변경 가능)
+        /// [1] GStreamer 환경변수 및 초기화 (MainWindow 코드와 동일)
         /// </summary>
-        public void Start(int udpPort = 5600, bool useUdp = false)
+        private void InitGStreamer()
         {
+            if (_gstInitialized) return;
+
+            string gstRoot = @"C:\gstreamer\1.0\mingw_x86_64";
+            Environment.SetEnvironmentVariable("PATH",
+                $"{gstRoot}\\bin;" + Environment.GetEnvironmentVariable("PATH"));
+            Environment.SetEnvironmentVariable("GST_PLUGIN_SYSTEM_PATH_1_0",
+                $@"{gstRoot}\lib\gstreamer-1.0");
+
+            Gst.Application.Init();
+            _gstInitialized = true;
+            System.Diagnostics.Debug.WriteLine("[GStreamer] ✅ Initialized (Service)");
+        }
+
+        /// <summary>
+        /// [2] 영상 수신 시작
+        /// </summary>
+        public void Start(int udpPort = 5600)
+        {
+            if (_isRunning) return;
+            _isRunning = true;
+
             Stop();
+
+            string pipelineDesc =
+                $"udpsrc port={udpPort} " +
+                "caps=application/x-rtp,media=video,encoding-name=H264,payload=96,clock-rate=90000 ! " +
+                "rtph264depay ! queue ! decodebin ! queue ! videoconvert ! queue ! " +
+                "video/x-raw,format=BGRx ! appsink name=sink emit-signals=true max-buffers=1 drop=true";
 
             try
             {
-                string pipelineDesc = $"udpsrc port={udpPort} " +
-                    "caps=\"application/x-rtp, media=video, encoding-name=H264, payload=96, clock-rate=90000\" " +
-                    "! rtpjitterbuffer latency=100 " +
-                    "! rtph264depay " +
-                    "! decodebin " +
-                    "! videoconvert " +
-                    "! video/x-raw,format=BGR " +
-                    "! appsink name=sink emit-signals=true sync=false";
+                _pipeline = Parse.Launch(pipelineDesc) as Pipeline;
+                var sinkElement = _pipeline.GetChildByName("sink");
+                _appsink = new AppSink(sinkElement.Handle);
+                _appsink.EmitSignals = true;
+                _appsink.NewSample += OnNewSample;
 
-                var element = Parse.Launch(pipelineDesc);
-                if (element == null)
-                {
-                    Console.WriteLine("[GStreamer] ❌ Parse.Launch returned null. Check PATH or pipeline string.");
-                    return;
-                }
-
-                // 파이프라인 구성
-                _pipeline = element as Pipeline ?? new Pipeline("main-pipeline");
-                if (_pipeline != element)
-                    _pipeline.Add(element);
-
-                // appsink 가져오기
-                _sink = _pipeline.GetChildByName("sink") as AppSink;
-                if (_sink == null)
-                {
-                    Console.WriteLine("[GStreamer] ❌ AppSink not found.");
-                    return;
-                }
-
-                // 이벤트 핸들러 연결
-                _sink.NewSample += OnNewSample;
-
-                // 파이프라인 실행
                 _pipeline.SetState(State.Playing);
-                Console.WriteLine($"[GStreamer] ▶️ Pipeline started. (useUdp={useUdp})");
+                StartGlibLoop();
+
+                System.Diagnostics.Debug.WriteLine($"[GStreamer] ▶️ Pipeline started (UDP {udpPort})");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[VideoStream ERROR] {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"[GStreamer ERROR] {ex}");
+                Stop();
             }
         }
 
         /// <summary>
-        /// GStreamer AppSink의 새 프레임 수신 이벤트
+        /// [3] GLib 이벤트 루프 유지 (MainWindow 동일)
         /// </summary>
-        private void OnNewSample(object sender, NewSampleArgs args)
+        private void StartGlibLoop()
         {
-            System.Diagnostics.Debug.WriteLine("이미지 수신");
-            var sink = (AppSink)sender;
-            using var sample = sink.PullSample();
+            _glibTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(10) };
+            _glibTimer.Tick += (s, e) => GLib.MainContext.Iteration(false);
+            _glibTimer.Start();
+        }
+
+        /// <summary>
+        /// [4] AppSink 프레임 수신 콜백
+        /// </summary>
+        private void OnNewSample(object sender, EventArgs args)
+        {
+            System.Diagnostics.Debug.WriteLine($"이미지 수신중");
+            using var sample = _appsink!.PullSample();
             if (sample == null) return;
 
             var caps = sample.Caps;
             var s = caps.GetStructure(0);
-            s.GetInt("width", out int width);
-            s.GetInt("height", out int height);
-            if (width <= 0 || height <= 0) return;
+            int width = (int)s.GetValue("width").Val;
+            int height = (int)s.GetValue("height").Val;
 
-            var buffer = sample.Buffer;
-            if (!buffer.Map(out MapInfo map, MapFlags.Read)) return;
+            if (!sample.Buffer.Map(out MapInfo map, MapFlags.Read))
+                return;
 
             try
             {
-                int stride = width * 3;
-                byte[] managedBuffer = map.Data;
-                System.Windows.Application.Current.Dispatcher.Invoke(() =>
+                // ✅ 프레임 복사 (UI 접근용)
+                byte[] frameCopy = new byte[map.Data.Length];
+                System.Buffer.BlockCopy(map.Data, 0, frameCopy, 0, frameCopy.Length);
+
+                int stride = width * 4;
+
+                // ✅ UI 스레드로 안전하게 전달
+                System.Windows.Application.Current?.Dispatcher.BeginInvoke(() =>
                 {
-                    var bmp = System.Windows.Media.Imaging.BitmapSource.Create(
+                    var bmp = BitmapSource.Create(
                         width, height, 96, 96,
-                        System.Windows.Media.PixelFormats.Bgr24,
+                        System.Windows.Media.PixelFormats.Bgr32,
                         null,
-                        managedBuffer,
-                        stride
-                    );
+                        frameCopy,
+                        stride);
+                    bmp.Freeze(); // MVVM에서도 안전히 전달 가능
                     FrameArrived?.Invoke(bmp);
                 });
             }
             finally
             {
-                buffer.Unmap(map);
+                sample.Buffer.Unmap(map);
             }
-
         }
 
         /// <summary>
-        /// 파이프라인 중지 및 자원 해제
+        /// [5] 정지 및 해제
         /// </summary>
         public void Stop()
         {
             try
             {
-                if (_sink != null)
+                _isRunning = false;
+
+                if (_appsink != null)
                 {
-                    _sink.NewSample -= OnNewSample;
-                    _sink = null;
+                    _appsink.NewSample -= OnNewSample;
+                    _appsink = null;
                 }
 
                 if (_pipeline != null)
@@ -163,11 +157,14 @@ namespace Operation_Control_System.Services
                     _pipeline = null;
                 }
 
-                Console.WriteLine("[GStreamer] 🛑 Pipeline stopped.");
+                _glibTimer?.Stop();
+                _glibTimer = null;
+
+                System.Diagnostics.Debug.WriteLine("[GStreamer] 🛑 Pipeline stopped.");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[Stop ERROR] {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"[Stop ERROR] {ex.Message}");
             }
         }
 

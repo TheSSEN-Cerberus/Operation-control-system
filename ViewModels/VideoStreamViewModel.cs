@@ -10,6 +10,8 @@ namespace Operation_Control_System.ViewModels
     public class VideoStreamViewModel : BaseViewModel
     {
         private readonly VideoStreamService _videoService;
+        private readonly object _lock = new();
+        private bool _started = false;
 
         private ImageSource? _currentFrame;
         public ImageSource? CurrentFrame
@@ -39,11 +41,21 @@ namespace Operation_Control_System.ViewModels
 
         public async Task StartAsync(int port = 5600)
         {
+            lock (_lock)
+            {
+                if (_started)
+                {
+                    System.Diagnostics.Debug.WriteLine("[VideoStream] ⚠️ Already started. Skipping duplicate call.");
+                    return;
+                }
+                _started = true;
+            }
+
             await Task.Run(() =>
             {
                 try
                 {
-                    _videoService.Start(port, true);
+                    _videoService.Start(port);
                     System.Diagnostics.Debug.WriteLine($"[VideoStream] Listening on UDP {port}");
                 }
                 catch (Exception ex)

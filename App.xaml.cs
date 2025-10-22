@@ -13,7 +13,6 @@ namespace Operation_Control_System
     {
         protected override async void OnStartup(StartupEventArgs e)
         {
-            Environment.SetEnvironmentVariable("GST_DEBUG", "3");
             base.OnStartup(e);
             var vm = new MainViewModel();
             var mainWindow = new MainWindow { DataContext = vm };
