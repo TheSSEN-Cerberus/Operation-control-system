@@ -1,6 +1,8 @@
 ﻿using GMap.NET;
 using Operation_Control_System.Infrastructure;
 using Operation_Control_System.Services;
+using System.Diagnostics;
+using System.Windows;
 
 namespace Operation_Control_System.ViewModels
 {
@@ -21,18 +23,30 @@ namespace Operation_Control_System.ViewModels
             get => _startLongitude;
             set => SetProperty(ref _startLongitude, value);
         }
-        public double CurrentLatitude;
-        public double CurrentLongitude;
+        // ========== 현재 지도 위경도 ==========
+        private double _currentLatitude;
+        public double CurrentLatitude
+        {
+            get => _currentLatitude;
+            set => SetProperty(ref _currentLatitude, value);
+        }
+
+        private double _currentLongitude;
+        public double CurrentLongitude
+        {
+            get => _currentLongitude;
+            set => SetProperty(ref _currentLongitude, value);
+        }
 
 
-        private PointLatLng _mapCenter = new PointLatLng(37.5665, 126.9780); // 기본: 서울
+        private PointLatLng _mapCenter = new PointLatLng(37.4778193, 126.8794248); // 기본: 서울
         public PointLatLng MapCenter
         {
             get => _mapCenter;
             set => SetProperty(ref _mapCenter, value);
         }
 
-        private double _zoom = 18; // 최대 줌 정도로 설정
+        private double _zoom = 5;
         public double Zoom
         {
             get => _zoom;
@@ -46,13 +60,17 @@ namespace Operation_Control_System.ViewModels
         {
             _networkService = networkService;
             SetStartPositionCommand = new RelayCommand(OnSetStartPosition);
+            Debug.WriteLine(Zoom);
         }
 
         private void OnSetStartPosition()
         {
             MapCenter = new PointLatLng(StartLatitude, StartLongitude);
-            Zoom = 20;
-            System.Diagnostics.Debug.WriteLine($"[Map] Set Center → {StartLatitude}, {StartLongitude}");
+            CurrentLatitude = StartLatitude;
+            CurrentLongitude = StartLongitude;
+            Zoom = 19;
+            Debug.WriteLine($"[Map] Set Center → {StartLatitude}, {StartLongitude}");
         }
+
     }
 }

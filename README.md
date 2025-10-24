@@ -21,3 +21,7 @@
 - gstreamer-sharp-netcore 0.0.8
 - GMap.NET.Core 2.17
 - GMap.NET.WindowsPresentation 2.17
+- System.Data.SQLite 2.0.2
+- System.Data.SQLite.Core 1.0.119
+- SQLitePCLRaw.core 3.0.2
+- SQLitePCLRaw.bundle_e_sqlite3 3.0.2

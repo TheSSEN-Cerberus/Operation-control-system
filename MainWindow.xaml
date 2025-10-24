@@ -135,15 +135,16 @@
                     </StackPanel>
 
                     <!-- 구분선 -->
-                    <Separator Grid.Column="1" Margin="10,0" Width="1"
+                    <Separator Grid.Column="1" Margin="10,0" Width="0"
                                HorizontalAlignment="Center" VerticalAlignment="Stretch"/>
 
                     <!-- 현재 로봇 위경도 -->
                     <StackPanel Orientation="Horizontal" Grid.Column="2" VerticalAlignment="Center">
-                        <TextBlock Text="현재 위도:" Margin="5"/>
-                        <TextBlock Text="{Binding Map.CurrentLatitude, StringFormat={}{0:F6}}" Margin="5"/>
-                        <TextBlock Text="경도:" Margin="5"/>
-                        <TextBlock Text="{Binding Map.CurrentLongitude, StringFormat={}{0:F6}}" Margin="5"/>
+                        <TextBlock Text="위도: " VerticalAlignment="Center" Margin="5"/>
+                        <TextBlock Text="{Binding Map.StartLatitude, Mode=TwoWay}" Width="50" Margin="5"/>
+                        <TextBlock Text="경도: " VerticalAlignment="Center" Margin="5"/>
+                        <TextBlock Text="{Binding Map.StartLongitude, Mode=TwoWay}" Width="50" Margin="5"/>
+                        <Button Content="설정" Width="60" Margin="5" Command="{Binding Map.SetStartPositionCommand}"/>
                     </StackPanel>
                 </Grid>
 
@@ -323,16 +324,19 @@
                 <Separator Margin="0,5"/>
 
                 <!-- 5행: 지도 표시 -->
-                <GroupBox Header="지도 표시" Margin="0,0,0,10">
+                <GroupBox Header="Map" Margin="0,0,0,10">
                     <Grid>
                         <gmap:GMapControl
                         x:Name="MapControl"
                         Grid.Row="0"
                         MinHeight="300"
-                        Zoom="{Binding Zoom, Mode=TwoWay}"
+                        MinZoom="2"
+                        MaxZoom="22"
+                        Zoom="{Binding Map.Zoom, Mode=OneWay}"
+                        Position="{Binding Map.MapCenter, Mode=OneWay}"
                         CanDragMap="True"
                         MouseWheelZoomType="MousePositionAndCenter"
-                        MapProvider="{x:Static gmapcore:GMapProviders.GoogleMap}"
+                        MapProvider="{x:Static gmapcore:GMapProviders.BingSatelliteMap}"
                         />
                     </Grid>
                 </GroupBox>
