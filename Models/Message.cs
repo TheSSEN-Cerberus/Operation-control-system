@@ -8,13 +8,13 @@ namespace Operation_Control_System.Models
     /// </summary>
     public class Message
     {
-        [JsonPropertyName("Type")]
+        [JsonPropertyName("type")]
         public string Type { get; set; } = string.Empty;  // 예: "Status", "FireReady", "FireCommand" 등
 
-        [JsonPropertyName("TimeStamp")]
+        [JsonPropertyName("timestamp")]
         public string TimeStamp { get; set; } = DateTime.UtcNow.ToString("O");
 
-        [JsonPropertyName("Data")]
+        [JsonPropertyName("data")]
         public MessageData? Data { get; set; }
     }
 }

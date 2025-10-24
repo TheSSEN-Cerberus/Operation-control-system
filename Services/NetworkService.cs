@@ -1,10 +1,11 @@
-﻿using System;
+﻿using Operation_Control_System.Models;
+using System;
 using System.Net;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 using System.Timers;
-using Operation_Control_System.Models;
+using System.Windows.Interop;
 
 namespace Operation_Control_System.Services
 {
@@ -82,10 +83,12 @@ namespace Operation_Control_System.Services
             string json = Encoding.UTF8.GetString(data);
             Console.WriteLine($"[Network] Received from {sender}: {json}");
 
+
             try
             {
                 // 1️⃣ Data를 JsonElement로 받기 위한 임시 구조체로 역직렬화
                 var msg = JsonSerializer.Deserialize<MessageTemp>(json);
+
                 if (msg == null)
                 {
                     Console.WriteLine("[Network] Invalid message structure.");
@@ -93,10 +96,12 @@ namespace Operation_Control_System.Services
                 }
 
                 // 2️⃣ Type 구분 후 개별 구조로 변환
-                switch (msg.Type)
+                switch (msg.type)
                 {
-                    case "Status":
-                        var status = msg.Data.Deserialize<StatusData>();
+
+                    case "status":
+
+                        var status = msg.data.Deserialize<StatusData>();
                         if (status != null)
                         {
                             _lastHeartbeat = DateTime.UtcNow;
@@ -106,8 +111,8 @@ namespace Operation_Control_System.Services
                         }
                         break;
 
-                    case "FireReady":
-                        var ready = msg.Data.Deserialize<FireReadyData>();
+                    case "fire_ready":
+                        var ready = msg.data.Deserialize<FireReadyData>();
                         if (ready != null)
                         {
                             FireReadyReceived?.Invoke(ready);
@@ -115,8 +120,8 @@ namespace Operation_Control_System.Services
                         }
                         break;
 
-                    case "BBoxData":
-                        var bbox = msg.Data.Deserialize<BBoxData>();
+                    case "bbox":
+                        var bbox = msg.data.Deserialize<BBoxData>();
                         if (bbox != null)
                         {
                             BBoxReceived?.Invoke(bbox);
@@ -124,8 +129,8 @@ namespace Operation_Control_System.Services
                         }
                         break;
 
-                    case "FireResult":
-                        var result = msg.Data.Deserialize<FireResultData>();
+                    case "fire_result":
+                        var result = msg.data.Deserialize<FireResultData>();
                         if (result != null)
                         {
                             FireResultReceived?.Invoke(result);
@@ -134,7 +139,7 @@ namespace Operation_Control_System.Services
                         break;
 
                     default:
-                        Console.WriteLine($"[Network] Unknown Type: {msg.Type}");
+                        Console.WriteLine($"[Network] Unknown Type: {msg.type}");
                         break;
                 }
             }
@@ -163,9 +168,9 @@ namespace Operation_Control_System.Services
         // =====================
         private class MessageTemp
         {
-            public string Type { get; set; } = "";
-            public string TimeStamp { get; set; } = "";
-            public JsonElement Data { get; set; }
+            public string type { get; set; } = "";
+            public string timeStamp { get; set; } = "";
+            public JsonElement data { get; set; }
         }
 
         // =====================
