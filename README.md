@@ -18,3 +18,4 @@
 - Microsoft.Extensions.Configuration.FileExtensions 8.0
 - Microsoft.Extensions.Configuration.Json 8.0
 - Microsoft.Extensions.Configuration.Binder 8.0
+- gstreamer-sharp-netcore

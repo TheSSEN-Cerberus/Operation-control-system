@@ -3,6 +3,7 @@ using System.Configuration;
 using System.Data;
 using System.Windows;
 
+
 namespace Operation_Control_System
 {
     /// <summary>
@@ -13,7 +14,6 @@ namespace Operation_Control_System
         protected override async void OnStartup(StartupEventArgs e)
         {
             base.OnStartup(e);
-
             var vm = new MainViewModel();
             var mainWindow = new MainWindow { DataContext = vm };
             mainWindow.Show();
