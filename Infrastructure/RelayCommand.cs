@@ -14,6 +14,10 @@ namespace Operation_Control_System.Infrastructure
             _canExecute = canExecute;
         }
 
+        public RelayCommand(Action execute)
+        {
+            _execute = _ => execute();
+        }
         public bool CanExecute(object? parameter) => _canExecute?.Invoke(parameter) ?? true;
 
         public void Execute(object? parameter) => _execute(parameter);
