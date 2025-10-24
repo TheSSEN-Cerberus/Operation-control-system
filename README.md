@@ -18,4 +18,6 @@
 - Microsoft.Extensions.Configuration.FileExtensions 8.0
 - Microsoft.Extensions.Configuration.Json 8.0
 - Microsoft.Extensions.Configuration.Binder 8.0
-- gstreamer-sharp-netcore
+- gstreamer-sharp-netcore 0.0.8
+- GMap.NET.Core 2.17
+- GMap.NET.WindowsPresentation 2.17

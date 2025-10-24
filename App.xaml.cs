@@ -14,6 +14,7 @@ namespace Operation_Control_System
         protected override async void OnStartup(StartupEventArgs e)
         {
             base.OnStartup(e);
+            GMap.NET.GMaps.Instance.Mode = GMap.NET.AccessMode.ServerAndCache;
             var vm = new MainViewModel();
             var mainWindow = new MainWindow { DataContext = vm };
             mainWindow.Show();
