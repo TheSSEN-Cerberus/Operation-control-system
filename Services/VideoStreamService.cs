@@ -55,16 +55,16 @@ namespace Operation_Control_System.Services
 
             Stop();
 
+            //string pipelineDesc =
+            //    $"udpsrc port={udpPort} " +
+            //    "caps=application/x-rtp,media=video,encoding-name=JPEG,payload=26,clock-rate=90000 ! " +
+            //    "rtpjpegdepay ! jpegdec ! videoconvert ! " +
+            //    "video/x-raw,format=BGRx ! appsink name=sink emit-signals=true max-buffers=1 drop=true";
             string pipelineDesc =
-                $"udpsrc port={udpPort} " +
-                "caps=application/x-rtp,media=video,encoding-name=JPEG,payload=26,clock-rate=90000 ! " +
-                "rtpjpegdepay ! jpegdec ! videoconvert ! " +
-                "video/x-raw,format=BGRx ! appsink name=sink emit-signals=true max-buffers=1 drop=true";
-            //        string pipelineDesc =
-            //$"udpsrc port={udpPort} " +
-            //"caps=application/x-rtp,media=video,encoding-name=H264,payload=96,clock-rate=90000 ! " +
-            //"rtph264depay ! queue ! decodebin ! queue ! videoconvert ! queue ! " +
-            //"video/x-raw,format=BGRx ! appsink name=sink emit-signals=true max-buffers=1 drop=true";
+    $"udpsrc port={udpPort} " +
+    "caps=application/x-rtp,media=video,encoding-name=H264,payload=96,clock-rate=90000 ! " +
+    "rtph264depay ! queue ! decodebin ! queue ! videoconvert ! queue ! " +
+    "video/x-raw,format=BGRx ! appsink name=sink emit-signals=true max-buffers=1 drop=true";
 
 
             try

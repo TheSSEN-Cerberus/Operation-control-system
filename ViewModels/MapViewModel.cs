@@ -8,6 +8,7 @@ namespace Operation_Control_System.ViewModels
     {
         private readonly NetworkService _networkService;
         private double _startLatitude;
+
         public double StartLatitude
         {
             get => _startLatitude;
@@ -20,6 +21,8 @@ namespace Operation_Control_System.ViewModels
             get => _startLongitude;
             set => SetProperty(ref _startLongitude, value);
         }
+        public double CurrentLatitude;
+        public double CurrentLongitude;
 
 
         private PointLatLng _mapCenter = new PointLatLng(37.5665, 126.9780); // 기본: 서울
