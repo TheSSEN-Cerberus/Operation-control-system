@@ -14,26 +14,48 @@
 
     <Grid>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="1.5*"/>
+            <ColumnDefinition Width="2*"/>
             <ColumnDefinition Width="2*"/>
         </Grid.ColumnDefinitions>
 
         <!-- 좌측: 영상 및 객체 정보 -->
         <Border Grid.Column="0" BorderBrush="DarkGray" BorderThickness="1" Margin="5">
             <Grid>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="3*"/>
-                    <RowDefinition Height="Auto"/>
-                </Grid.RowDefinitions>
-
-                <!-- 영상 표시 -->
+                <!-- 영상 -->
                 <Image Source="{Binding VideoStream.CurrentFrame}"
-                       Grid.Row="0" Stretch="Uniform" Margin="5"/>
+           Stretch="Uniform"
+           HorizontalAlignment="Center"
+           VerticalAlignment="Top" />
 
-                <!-- 객체 정보 -->
-                <TextBlock Text="{Binding VideoStream.SelectedBBoxInfo}"
-                           Grid.Row="1"
-                           Margin="5" Foreground="White" Background="Black"/>
+                <!-- BBox 오버레이 -->
+                <ItemsControl ItemsSource="{Binding VideoStream.BBoxes}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <Canvas />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+
+                    <ItemsControl.ItemContainerStyle>
+                        <Style>
+                            <Setter Property="Canvas.Left" Value="{Binding X}" />
+                            <Setter Property="Canvas.Top" Value="{Binding Y}" />
+                        </Style>
+                    </ItemsControl.ItemContainerStyle>
+
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border BorderBrush="{Binding BoxColor}" BorderThickness="2"
+                        Width="{Binding Width}" Height="{Binding Height}"
+                        Background="#20FF0000"
+                        MouseLeftButtonDown="OnBBoxClicked">
+                                <StackPanel>
+                                    <TextBlock Text="{Binding Id}" Foreground="Yellow" FontWeight="Bold"/>
+                                    <TextBlock Text="{Binding ClassLabel}" Foreground="White" FontSize="10"/>
+                                </StackPanel>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
             </Grid>
         </Border>
 

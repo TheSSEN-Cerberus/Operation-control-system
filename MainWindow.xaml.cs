@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using Operation_Control_System.ViewModels;
+using System.Text;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
@@ -19,6 +20,14 @@ namespace Operation_Control_System
         public MainWindow()
         {
             InitializeComponent();
+        }
+        private void OnBBoxClicked(object sender, MouseButtonEventArgs e)
+        {
+            if (sender is Border border && border.DataContext is BBoxViewModel bbox)
+            {
+                if (DataContext is MainViewModel vm)
+                    vm.VideoStream.OnBBoxClicked(bbox.Id);
+            }
         }
     }
 }

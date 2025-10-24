@@ -5,6 +5,7 @@ namespace Operation_Control_System.Models
 {
     public class BBoxData : MessageData
     {
+
         [JsonPropertyName("frame_id")]
         public int FrameId { get; set; }
 
