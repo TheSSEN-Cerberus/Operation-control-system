@@ -3,11 +3,14 @@ using System.Collections.ObjectModel;
 using System.Windows.Input;
 using System.Windows.Media;
 using Operation_Control_System.Infrastructure;
+using Operation_Control_System.Services;
 
 namespace Operation_Control_System.ViewModels
 {
     public class ControlViewModel : BaseViewModel
     {
+        private readonly NetworkService _networkService;
+
         // --- 기존 상태 속성 (레이저, 모드 등)
         private bool _isLaserOn;
         public bool IsLaserOn
@@ -86,10 +89,12 @@ namespace Operation_Control_System.ViewModels
         public ICommand ConfirmKillCommand { get; }
         public ICommand SendFireCommand { get; }
 
-        public ControlViewModel()
+        public ControlViewModel(NetworkService networkService)
         {
+            _networkService = networkService;
             ConfirmKillCommand = new RelayCommand(OnConfirmKill);
             SendFireCommand = new RelayCommand(OnSendFire);
+            this._networkService = networkService;
         }
 
         private void OnConfirmKill(object? param)

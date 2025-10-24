@@ -1,4 +1,5 @@
 ﻿using Operation_Control_System.Infrastructure;
+using Operation_Control_System.Services;
 using System.Collections.ObjectModel;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -7,6 +8,8 @@ namespace Operation_Control_System.ViewModels
 {
     public class MapViewModel : BaseViewModel
     {
+        private readonly NetworkService _networkService;
+
         private double _startLatitude;
         public double StartLatitude
         {
@@ -39,8 +42,9 @@ namespace Operation_Control_System.ViewModels
 
         public ICommand SetStartPositionCommand { get; }
 
-        public MapViewModel()
+        public MapViewModel(NetworkService networkService)
         {
+            _networkService = networkService;
             SetStartPositionCommand = new RelayCommand(_ => SetStartPosition());
         }
 

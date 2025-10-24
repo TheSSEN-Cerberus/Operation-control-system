@@ -1,15 +1,23 @@
-﻿using Operation_Control_System.Infrastructure;
+﻿using GLib;
+using Operation_Control_System.Infrastructure;
 using Operation_Control_System.Services;
 using System;
+using System.Collections.ObjectModel;
 using System.Threading.Tasks;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using NetworkService = Operation_Control_System.Services.NetworkService;
+using Task = System.Threading.Tasks.Task;
 
 namespace Operation_Control_System.ViewModels
 {
     public class VideoStreamViewModel : BaseViewModel
     {
         private readonly VideoStreamService _videoService;
+        private readonly NetworkService _networkService;
+
+        public ObservableCollection<BBoxViewModel> BBoxes { get; } = new();
+
         private readonly object _lock = new();
         private bool _started = false;
 
@@ -28,8 +36,9 @@ namespace Operation_Control_System.ViewModels
             set => SetProperty(ref _selectedBBoxInfo, value);
         }
 
-        public VideoStreamViewModel()
+        public VideoStreamViewModel(NetworkService networkService)
         {
+            _networkService = networkService;
             _videoService = new VideoStreamService();
             _videoService.FrameArrived += OnFrameArrived;
         }
