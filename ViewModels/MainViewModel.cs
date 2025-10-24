@@ -17,8 +17,8 @@ namespace Operation_Control_System.ViewModels
             _networkService = new NetworkService();
 
             Network = new NetworkViewModel(_networkService);
-            VideoStream = new VideoStreamViewModel(_networkService);
             Control = new ControlViewModel(_networkService);
+            VideoStream = new VideoStreamViewModel(_networkService, Control);
             Map = new MapViewModel(_networkService);
             // ✅ 프로그램 시작 시 자동으로 영상 수신 시작
             _ = VideoStream.StartAsync(port: 5600);
