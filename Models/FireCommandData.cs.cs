@@ -2,7 +2,7 @@
 
 namespace Operation_Control_System.Models
 {
-    public class FireCommandData : MessageData
+    public class FireCommandData 
     {
         [JsonPropertyName("trigger")]
         public bool Trigger { get; set; }

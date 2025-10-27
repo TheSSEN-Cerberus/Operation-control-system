@@ -3,7 +3,7 @@ using System.Text.Json.Serialization;
 
 namespace Operation_Control_System.Models
 {
-    public class BBoxData : MessageData
+    public class BBoxData
     {
 
         [JsonPropertyName("frame_id")]

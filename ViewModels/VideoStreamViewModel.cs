@@ -8,8 +8,12 @@ using System.Net;
 using System.Threading.Tasks;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using System.Timers;
+
 using NetworkService = Operation_Control_System.Services.NetworkService;
 using Task = System.Threading.Tasks.Task;
+using DateTime = System.DateTime;
+using Timer = System.Timers.Timer;
 
 namespace Operation_Control_System.ViewModels
 {
@@ -40,6 +44,9 @@ namespace Operation_Control_System.ViewModels
             set => SetProperty(ref _selectedBBoxInfo, value);
         }
 
+        private DateTime _lastBBoxTime = DateTime.MinValue;
+        private readonly Timer _bboxTimeoutTimer;
+
         public VideoStreamViewModel(NetworkService networkService, ControlViewModel controlViewModel)
         {
             _controlViewModel = controlViewModel;
@@ -47,6 +54,12 @@ namespace Operation_Control_System.ViewModels
             _videoService = new VideoStreamService();
             _videoService.FrameArrived += OnFrameArrived;
             _networkService.BBoxReceived += OnBBoxReceived;
+
+
+            // ✅ 타임아웃 체크 타이머 (0.5초마다 검사)
+            _bboxTimeoutTimer = new Timer(500);
+            _bboxTimeoutTimer.Elapsed += (_, __) => CheckBBoxTimeout();
+            _bboxTimeoutTimer.Start();
         }
 
         // Gstreamer 영상 수신
@@ -56,23 +69,58 @@ namespace Operation_Control_System.ViewModels
         }
 
         // BBox 데이터 수신
+        // ✅ BBox 데이터 수신
         private void OnBBoxReceived(BBoxData bboxData)
         {
-            if (CurrentFrame == null) return;
+            if (CurrentFrame == null || bboxData.Objects == null)
+                return;
 
+            _lastBBoxTime = DateTime.UtcNow;
             int frameWidth = CurrentFrame.PixelWidth;
             int frameHeight = CurrentFrame.PixelHeight;
 
             App.Current.Dispatcher.Invoke(() =>
             {
-                BBoxes.Clear();
+                // ① 현재 수신된 ID 목록
+                var newIds = bboxData.Objects.Select(o => o.Id).ToHashSet();
 
+                // ② 기존 중, 새 데이터에 없는 ID는 제거
+                for (int i = BBoxes.Count - 1; i >= 0; i--)
+                {
+                    if (!newIds.Contains(BBoxes[i].Id))
+                        BBoxes.RemoveAt(i);
+                }
+
+                // ③ 새로 들어온/기존 객체 갱신
                 foreach (var model in bboxData.Objects)
                 {
-                    var vm = new BBoxViewModel(model, frameWidth, frameHeight);
-                    BBoxes.Add(vm);
+                    var existing = BBoxes.FirstOrDefault(b => b.Id == model.Id);
+                    if (existing != null)
+                    {
+                        // 좌표만 업데이트
+                        existing.Update(model, frameWidth, frameHeight);
+                    }
+                    else
+                    {
+                        var bboxVm = new BBoxViewModel(model, frameWidth, frameHeight);
+                        bboxVm.Clicked += OnBBoxClicked;
+                        // 새 객체 추가
+                        BBoxes.Add(bboxVm);
+                    }
                 }
+
+                // ④ 선택된 객체 정보 갱신 (예시)
+                SelectedBBoxInfo = $"탐지 객체 수: {BBoxes.Count}";
             });
+        }
+
+        // ✅ 일정 시간 미수신 시 Clear
+        private void CheckBBoxTimeout()
+        {
+            if ((DateTime.UtcNow - _lastBBoxTime).TotalMilliseconds > 300)
+            {
+                App.Current.Dispatcher.Invoke(() => BBoxes.Clear());
+            }
         }
 
         public void OnBBoxClicked(int id)
@@ -80,9 +128,9 @@ namespace Operation_Control_System.ViewModels
             // 수동 모드일 때만 추적 명령 전송
             if (_controlViewModel.SelectedOperationMode == "수동")
             {
-                _ = _networkService.SendAsync(new Message
+                _ = _networkService.SendAsync(new Message<TrackTargetData>
                 {
-                    Type = "TrackTarget",
+                    Type = "track_target",
                     Data = new TrackTargetData(id)
                 });
             }
