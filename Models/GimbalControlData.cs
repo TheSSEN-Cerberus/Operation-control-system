@@ -2,7 +2,7 @@
 
 namespace Operation_Control_System.Models
 {
-    public class GimbalControlData : MessageData
+    public class GimbalControlData
     {
         [JsonPropertyName("azimuth")]
         public float Azimuth { get; set; }

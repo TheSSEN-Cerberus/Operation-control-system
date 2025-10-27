@@ -21,13 +21,13 @@ namespace Operation_Control_System
         {
             InitializeComponent();
         }
-        private void OnBBoxClicked(object sender, MouseButtonEventArgs e)
+        private async void Window_Loaded(object sender, RoutedEventArgs e)
         {
-            if (sender is Border border && border.DataContext is BBoxViewModel bbox)
+            if (DataContext is MainViewModel vm)
             {
-                if (DataContext is MainViewModel vm)
-                    vm.VideoStream.OnBBoxClicked(bbox.Id);
+                await vm.VideoStream.StartAsync(port: 5600);
             }
         }
+
     }
 }

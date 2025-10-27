@@ -2,7 +2,7 @@
 
 namespace Operation_Control_System.Models
 {
-    public class StatusData : MessageData
+    public class StatusData 
     {
         [JsonPropertyName("network_rssi")]
         public int NetworkRssi { get; set; }

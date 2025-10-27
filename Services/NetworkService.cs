@@ -1,5 +1,6 @@
 ﻿using Operation_Control_System.Models;
 using System;
+using System.Diagnostics;
 using System.Net;
 using System.Text;
 using System.Text.Json;
@@ -61,11 +62,19 @@ namespace Operation_Control_System.Services
         // =====================
         // 송신 (Message 객체)
         // =====================
-        public async Task SendAsync(Message msg)
+        public async Task SendAsync<T>(Message<T> msg)
         {
             try
             {
-                string json = JsonSerializer.Serialize(msg);
+                var options = new JsonSerializerOptions
+                {
+                    PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                    WriteIndented = true
+                };
+
+                string json = JsonSerializer.Serialize(msg, options);
+
+                Debug.WriteLine(json);
                 await _udp.SendTextAsync(json);
                 Console.WriteLine($"[Network] Sent: {msg.Type}");
             }
@@ -75,6 +84,7 @@ namespace Operation_Control_System.Services
             }
         }
 
+
         // =====================
         // 수신 콜백
         // =====================
@@ -83,63 +93,61 @@ namespace Operation_Control_System.Services
             string json = Encoding.UTF8.GetString(data);
             Console.WriteLine($"[Network] Received from {sender}: {json}");
 
-
             try
             {
-                // 1️⃣ Data를 JsonElement로 받기 위한 임시 구조체로 역직렬화
-                var msg = JsonSerializer.Deserialize<MessageTemp>(json);
+                using var doc = JsonDocument.Parse(json);
+                var root = doc.RootElement;
 
-                if (msg == null)
+                if (!root.TryGetProperty("type", out var typeProp))
                 {
-                    Console.WriteLine("[Network] Invalid message structure.");
+                    Console.WriteLine("[Network] Missing 'type' field.");
                     return;
                 }
 
-                // 2️⃣ Type 구분 후 개별 구조로 변환
-                switch (msg.type)
+                string type = typeProp.GetString() ?? "";
+
+                switch (type)
                 {
-
                     case "status":
-
-                        var status = msg.data.Deserialize<StatusData>();
-                        if (status != null)
+                        var statusMsg = JsonSerializer.Deserialize<Message<StatusData>>(json);
+                        if (statusMsg?.Data != null)
                         {
                             _lastHeartbeat = DateTime.UtcNow;
-                            StatusReceived?.Invoke(status);
+                            StatusReceived?.Invoke(statusMsg.Data);
                             ConnectionChanged?.Invoke(true);
-                            Console.WriteLine($"[Network] Parsed StatusData RSSI={status.NetworkRssi}");
+                            Console.WriteLine($"[Network] Parsed StatusData RSSI={statusMsg.Data.NetworkRssi}");
                         }
                         break;
 
                     case "fire_ready":
-                        var ready = msg.data.Deserialize<FireReadyData>();
-                        if (ready != null)
+                        var readyMsg = JsonSerializer.Deserialize<Message<FireReadyData>>(json);
+                        if (readyMsg?.Data != null)
                         {
-                            FireReadyReceived?.Invoke(ready);
+                            FireReadyReceived?.Invoke(readyMsg.Data);
                             Console.WriteLine("[Network] FireReady received.");
                         }
                         break;
 
                     case "bbox":
-                        var bbox = msg.data.Deserialize<BBoxData>();
-                        if (bbox != null)
+                        var bboxMsg = JsonSerializer.Deserialize<Message<BBoxData>>(json);
+                        if (bboxMsg?.Data != null)
                         {
-                            BBoxReceived?.Invoke(bbox);
-                            Console.WriteLine($"[Network] Received {bbox.Objects.Count} boxes.");
+                            BBoxReceived?.Invoke(bboxMsg.Data);
+                            Console.WriteLine($"[Network] Received {bboxMsg.Data.Objects.Count} boxes.");
                         }
                         break;
 
                     case "fire_result":
-                        var result = msg.data.Deserialize<FireResultData>();
-                        if (result != null)
+                        var resultMsg = JsonSerializer.Deserialize<Message<FireResultData>>(json);
+                        if (resultMsg?.Data != null)
                         {
-                            FireResultReceived?.Invoke(result);
-                            Console.WriteLine($"[Network] FireResult: {(result.Success ? "HIT" : "MISS")}");
+                            FireResultReceived?.Invoke(resultMsg.Data);
+                            Console.WriteLine($"[Network] FireResult: {(resultMsg.Data.Success ? "HIT" : "MISS")}");
                         }
                         break;
 
                     default:
-                        Console.WriteLine($"[Network] Unknown Type: {msg.type}");
+                        Console.WriteLine($"[Network] Unknown Type: {type}");
                         break;
                 }
             }
@@ -148,6 +156,7 @@ namespace Operation_Control_System.Services
                 Console.WriteLine($"[Network] Parse error: {ex.Message}");
             }
         }
+
 
         // =====================
         // 연결상태 감시

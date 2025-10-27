@@ -51,9 +51,8 @@ namespace Operation_Control_System.Services
         public void Start(int udpPort)
         {
             if (_isRunning) return;
-            _isRunning = true;
-
             Stop();
+            _isRunning = true;
 
             //string pipelineDesc =
             //    $"udpsrc port={udpPort} " +
@@ -64,7 +63,7 @@ namespace Operation_Control_System.Services
     $"udpsrc port={udpPort} " +
     "caps=application/x-rtp,media=video,encoding-name=H264,payload=96,clock-rate=90000 ! " +
     "rtph264depay ! queue ! decodebin ! queue ! videoconvert ! queue ! " +
-    "video/x-raw,format=BGRx ! appsink name=sink emit-signals=true max-buffers=1 drop=true";
+    "video/x-raw,format=BGRx ! appsink name=sink emit-signals=true max-buffers=5 drop=false";
 
 
             try

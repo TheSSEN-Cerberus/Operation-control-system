@@ -5,7 +5,8 @@
         xmlns:gmap="clr-namespace:GMap.NET.WindowsPresentation;assembly=GMap.NET.WindowsPresentation"
         xmlns:gmapcore="clr-namespace:GMap.NET.MapProviders;assembly=GMap.NET.Core"
         Title="4족 보행 로봇 운용 통제 시스템"
-        Height="768" Width="1280">
+        Height="768" Width="1280"
+        Loaded="Window_Loaded">
     
 
 
@@ -47,10 +48,14 @@
 
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <Border BorderBrush="{Binding BoxColor}" BorderThickness="2"
-                        Width="{Binding Width}" Height="{Binding Height}"
-                        Background="#20FF0000"
-                        MouseLeftButtonDown="OnBBoxClicked">
+                            <Border BorderBrush="{Binding BoxColor}"
+                                BorderThickness="2"
+                                Width="{Binding Width}"
+                                Height="{Binding Height}"
+                                Background="#20FF0000">
+                                <Border.InputBindings>
+                                    <MouseBinding Gesture="LeftClick" Command="{Binding ClickCommand}" />
+                                </Border.InputBindings>
                                 <StackPanel>
                                     <TextBlock Text="{Binding Id}" Foreground="Yellow" FontWeight="Bold"/>
                                     <TextBlock Text="{Binding ClassLabel}" Foreground="White" FontSize="10"/>
@@ -58,6 +63,7 @@
                             </Border>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
+
                 </ItemsControl>
             </Grid>
         </Border>
