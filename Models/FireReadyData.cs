@@ -4,7 +4,7 @@ namespace Operation_Control_System.Models
 {
     public class FireReadyData 
     {
-        [JsonPropertyName("IsReady")]
+        [JsonPropertyName("ready")]
         public bool IsReady { get; set; }
     }
 }

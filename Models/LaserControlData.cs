@@ -4,7 +4,7 @@ namespace Operation_Control_System.Models
 {
     public class LaserControlData
     {
-        [JsonPropertyName("laser_on_off")]
+        [JsonPropertyName("state")]
         public bool isOn { get; set; }
     }
 }
