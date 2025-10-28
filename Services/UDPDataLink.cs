@@ -66,12 +66,7 @@ namespace Operation_Control_System.Services
             {
                 while (!token.IsCancellationRequested && _udp != null)
                 {
-#if NET6_0_OR_GREATER
                     var result = await _udp.ReceiveAsync(token);
-#else
-                    var result = await _udp.ReceiveAsync();
-                    if (token.IsCancellationRequested) break;
-#endif
                     DataReceived?.Invoke(result.Buffer, result.RemoteEndPoint);
                 }
             }
