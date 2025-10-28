@@ -259,6 +259,25 @@ namespace Operation_Control_System.ViewModels
         /// <param name="key">눌린 키</param>
         public void OnKeyDown(Key key)
         {
+
+            // ===============================
+            // 🔸 운용모드에 따른 키 입력 제한
+            // ===============================
+            // 🚫 자동 모드일 때는 R 무시
+            if (SelectedOperationMode == "자동" && key == Key.R)
+            {
+                Debug.WriteLine("[Control] R ignored (자동 모드).");
+                return;
+            }
+
+            // 🚫 비수동 모드일 때는 김발 조작(WASD) 무시
+            if (SelectedOperationMode != "수동" &&
+                (key == Key.W || key == Key.A || key == Key.S || key == Key.D))
+            {
+                Debug.WriteLine("[Control] Gimbal key ignored (비수동 모드).");
+                return;
+            }
+
             // 🔸 R키: 로봇 이동 토글
             if (key == Key.R)
             {
