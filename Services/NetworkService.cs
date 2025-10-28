@@ -17,6 +17,7 @@ namespace Operation_Control_System.Services
     public class NetworkService : IDisposable
     {
         private readonly UDPDataLink _udp;
+        private readonly LoggerService _logger;
         private readonly System.Timers.Timer _watchdog;
         private DateTime _lastHeartbeat = DateTime.MinValue;
         private bool _isConnected;
@@ -38,6 +39,8 @@ namespace Operation_Control_System.Services
         {
             _udp = new UDPDataLink(localPort);
             _udp.DataReceived += OnDataReceived;
+
+            _logger = new LoggerService();
 
             _watchdog = new System.Timers.Timer(1000); // 1초마다 연결상태 점검
             _watchdog.Elapsed += (_, __) => CheckConnection();
@@ -75,9 +78,10 @@ namespace Operation_Control_System.Services
 
                 string json = JsonSerializer.Serialize(msg, options);
 
-                Debug.WriteLine(json);
                 await _udp.SendTextAsync(json);
-                Console.WriteLine($"[Network] Sent: {msg.Type}");
+                _logger.Log("TX", msg.Type, _udp.RemoteIP, _udp.RemotePort, json);
+                Debug.WriteLine($"[Network] Sent: {msg.Type}");
+
             }
             catch (Exception ex)
             {
@@ -104,9 +108,9 @@ namespace Operation_Control_System.Services
                     Console.WriteLine("[Network] Missing 'type' field.");
                     return;
                 }
-
                 string type = typeProp.GetString() ?? "";
 
+                _logger.Log("RX", type, sender.Address.ToString(), sender.Port, json);
                 switch (type)
                 {
                     case "status":
