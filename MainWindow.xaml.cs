@@ -20,6 +20,8 @@ namespace Operation_Control_System
         public MainWindow()
         {
             InitializeComponent();
+            PreviewKeyDown += OnPreviewKeyDown;
+            PreviewKeyUp += OnPreviewKeyUp;
         }
         private async void Window_Loaded(object sender, RoutedEventArgs e)
         {
@@ -28,6 +30,24 @@ namespace Operation_Control_System
                 await vm.VideoStream.StartAsync(port: 5600);
             }
         }
+        private void OnPreviewKeyDown(object sender, KeyEventArgs e)
+        {
+            // 🔸 스페이스 키 차단 (UI 버튼에 전달되지 않도록)
+            if (e.Key == Key.Space)
+                e.Handled = true;
+
+            (DataContext as ViewModels.MainViewModel)?.Control.OnKeyDown(e.Key);
+        }
+
+        private void OnPreviewKeyUp(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Space)
+                e.Handled = true;
+
+            (DataContext as ViewModels.MainViewModel)?.Control.OnKeyUp(e.Key);
+        }
+
+
 
     }
 }

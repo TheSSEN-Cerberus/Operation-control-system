@@ -128,10 +128,11 @@ namespace Operation_Control_System.ViewModels
             // 수동 모드일 때만 추적 명령 전송
             if (_controlViewModel.SelectedOperationMode == "수동")
             {
+                _controlViewModel.TrackedTargetId = id;
                 _ = _networkService.SendAsync(new Message<TrackTargetData>
                 {
                     Type = "track_target",
-                    Data = new TrackTargetData(id)
+                    Data = new TrackTargetData { TargetId = id }
                 });
             }
         }
