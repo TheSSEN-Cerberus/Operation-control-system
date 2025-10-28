@@ -147,6 +147,12 @@ namespace Operation_Control_System.ViewModels
                             Success = isHit
                         }
                     });
+                    if(isHit == true)
+                    {
+                        CanFire = false;
+                        TrackedTargetId = null;
+
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -187,7 +193,7 @@ namespace Operation_Control_System.ViewModels
                 return;
             }
             TrackedTargetId = data.TargetId;
-            Console.WriteLine($"[Control] 🎯 Tracked Target ID updated from board: {data.TargetId}");
+            Debug.WriteLine($"[Control] 🎯 Tracked Target ID updated from board: {data.TargetId}");
         }
         private async Task SendLaserCommand(bool isOn)
         {
@@ -231,13 +237,13 @@ namespace Operation_Control_System.ViewModels
                 switch (mode)
                 {
                     case "수동":
-                        int_mode = 0;
-                        break;
-                    case "반자동":
                         int_mode = 1;
                         break;
-                    case "자동":
+                    case "반자동":
                         int_mode = 2;
+                        break;
+                    case "자동":
+                        int_mode = 3;
                         break;
                     default:
                         Debug.WriteLine($"[Control] Operation mode {mode}");

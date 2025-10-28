@@ -132,7 +132,7 @@ namespace Operation_Control_System.ViewModels
                 _ = _networkService.SendAsync(new Message<TrackTargetData>
                 {
                     Type = "track_target",
-                    Data = new TrackTargetData(id)
+                    Data = new TrackTargetData { TargetId = id }
                 });
             }
         }

@@ -6,10 +6,5 @@ namespace Operation_Control_System.Models
     {
         [JsonPropertyName("target_id")]
         public int TargetId { get; set; }
-        public TrackTargetData(int id)
-        {
-            TargetId = id;
-        }
-
     }   
 }

@@ -152,7 +152,7 @@ namespace Operation_Control_System.Services
                         if (trackMsg?.Data != null)
                         {
                             TrackTargetReceived?.Invoke(trackMsg.Data);
-                            Console.WriteLine($"[Network] TrackTarget Received (ID={trackMsg.Data})");
+                            Debug.WriteLine($"[Network] TrackTarget Received (ID={trackMsg.Data})");
                         }
                         break;
 
