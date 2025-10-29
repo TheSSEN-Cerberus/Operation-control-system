@@ -150,10 +150,8 @@
                         <TextBlock Text="{Binding Map.StartLatitude, Mode=TwoWay}" Width="50" Margin="5"/>
                         <TextBlock Text="경도: " VerticalAlignment="Center" Margin="5"/>
                         <TextBlock Text="{Binding Map.StartLongitude, Mode=TwoWay}" Width="50" Margin="5"/>
-                        <Button Content="설정" Width="60" Margin="5" Command="{Binding Map.SetStartPositionCommand}"/>
                     </StackPanel>
                 </Grid>
-
                 <Separator Margin="0,5"/>
 
                 <!-- 3행: 표적 추적 및 격발 상태 -->
