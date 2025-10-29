@@ -1,5 +1,7 @@
 ﻿using Operation_Control_System.Infrastructure;
+using Operation_Control_System.Models;
 using Operation_Control_System.Services;
+using System.Diagnostics;
 
 namespace Operation_Control_System.ViewModels
 {
@@ -11,6 +13,8 @@ namespace Operation_Control_System.ViewModels
         public VideoStreamViewModel VideoStream { get; }
 
         private readonly NetworkService _networkService;
+
+        public RelayCommand EmergencyStopCommand { get; }
         public MainViewModel()
         {
             // 단일 네트워크 서비스
@@ -21,6 +25,62 @@ namespace Operation_Control_System.ViewModels
             VideoStream = new VideoStreamViewModel(_networkService, Control);
             Map = new MapViewModel(_networkService);
 
+            EmergencyStopCommand = new RelayCommand(async _ => await ExecuteEmergencyStop());
+        }
+
+        /// <summary>
+        /// 🚨 비상정지 실행
+        /// </summary>
+        public async Task ExecuteEmergencyStop()
+        {
+            try
+            {
+                Debug.WriteLine("[System] 🚨 EMERGENCY STOP TRIGGERED.");
+
+                // 1️⃣ 보드로 비상정지 명령 송신
+                await _networkService.SendAsync(new Message<EmergencyStopData>
+                {
+                    Type = "emergency_stop",
+                    Data = new EmergencyStopData { reset = true }
+                });
+
+                // 2️⃣ GUI 상태 초기화 (네트워크 제외)
+                ResetAllExceptNetwork();
+
+                // 3️⃣ 사용자에게 피드백
+                Debug.WriteLine("[System] All states reset except Network.");
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[System] Emergency stop error: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 네트워크 제외 모든 상태 초기화
+        /// </summary>
+        private void ResetAllExceptNetwork()
+        {
+            // Control 상태 초기화
+            Control.IsLaserOn = false;
+            Control.IsAutoFire = false;
+            Control.SelectedOperationMode = "수동";
+            Control.TrackedTargetId = null;
+            Control.CanFire = false;
+            Control.LastFireHit = null;
+
+            // 색상 초기화
+            Control.MoveForwardColor = System.Windows.Media.Brushes.Gray;
+            Control.MoveStopColor = System.Windows.Media.Brushes.Gray;
+            Control.GimbalUpColor = System.Windows.Media.Brushes.Gray;
+            Control.GimbalDownColor = System.Windows.Media.Brushes.Gray;
+            Control.GimbalLeftColor = System.Windows.Media.Brushes.Gray;
+            Control.GimbalRightColor = System.Windows.Media.Brushes.Gray;
+
+            // Video 초기화
+            VideoStream.BBoxes.Clear();
+            VideoStream.SelectedBBoxInfo = "객체 정보 없음";
+            Debug.WriteLine("[System] ✅ State Reset Done (Network kept alive)");
         }
     }
 }
