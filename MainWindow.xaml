@@ -157,43 +157,66 @@
                 <!-- 3행: 표적 추적 및 격발 상태 -->
                 <GroupBox Header="표적 추적 및 격발 상태" Margin="0,0,0,10">
                     <Grid>
-                        <Grid.RowDefinitions>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                            <RowDefinition Height="Auto"/>
-                        </Grid.RowDefinitions>
                         <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="Auto"/>
-                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="2*"/>
+                            <!-- 왼쪽 영역 -->
+                            <ColumnDefinition Width="1*"/>
+                            <!-- 오른쪽 영역 (비상정지 버튼) -->
                         </Grid.ColumnDefinitions>
 
-                        <!-- 추적 중인 객체 ID -->
-                        <TextBlock Text="추적 객체 ID:" Grid.Row="0" Grid.Column="0" Margin="5"/>
-                        <TextBlock Text="{Binding Control.TrackedTargetId}" 
-                   Grid.Row="0" Grid.Column="1" Margin="5"/>
+                        <!-- 왼쪽: 기존 추적/격발 상태 -->
+                        <Grid Grid.Column="0">
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
 
-                        <!-- 격발 가능 여부 및 버튼 -->
-                        <TextBlock Text="격발:" Grid.Row="1" Grid.Column="0" Margin="5"/>
-                        <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal" Margin="5">
-                            <Button Content="격발" Width="70" Height="25" 
-                    IsEnabled="{Binding Control.CanFire}"
-                    Command="{Binding Control.SendFireCommand}"/>
-                            <TextBlock Text="{Binding Control.FireStatusText}" 
-                       Margin="8,0,0,0" 
-                       VerticalAlignment="Center"
-                       Foreground="Gray"/>
-                        </StackPanel>
+                            <!-- 추적 객체 ID -->
+                            <TextBlock Text="추적 객체 ID:" Grid.Row="0" Grid.Column="0" Margin="5"/>
+                            <TextBlock Text="{Binding Control.TrackedTargetId}" 
+                       Grid.Row="0" Grid.Column="1" Margin="5"/>
 
-                        <!-- 격발 결과 (HIT / MISS) -->
-                        <TextBlock Text="격발 결과:" Grid.Row="2" Grid.Column="0" Margin="5"/>
-                        <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal" Margin="5">
-                            <Button Content="HIT" Width="60" Margin="2"
-                    Command="{Binding Control.ConfirmKillCommand}"
-                    CommandParameter="true"/>
-                            <Button Content="MISS" Width="60" Margin="2"
-                    Command="{Binding Control.ConfirmKillCommand}"
-                    CommandParameter="false"/>
-                        </StackPanel>
+                            <!-- 격발 가능 여부 및 버튼 -->
+                            <TextBlock Text="격발:" Grid.Row="1" Grid.Column="0" Margin="5"/>
+                            <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal" Margin="5">
+                                <Button Content="격발" Width="70" Height="25" 
+                        IsEnabled="{Binding Control.CanFire}"
+                        Command="{Binding Control.SendFireCommand}"/>
+                                <TextBlock Text="{Binding Control.FireStatusText}" 
+                           Margin="8,0,0,0" 
+                           VerticalAlignment="Center"
+                           Foreground="Gray"/>
+                            </StackPanel>
+
+                            <!-- 격발 결과 (HIT / MISS) -->
+                            <TextBlock Text="격발 결과:" Grid.Row="2" Grid.Column="0" Margin="5"/>
+                            <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal" Margin="5">
+                                <Button Content="HIT" Width="60" Margin="2"
+                        Command="{Binding Control.ConfirmKillCommand}"
+                        CommandParameter="true"/>
+                                <Button Content="MISS" Width="60" Margin="2"
+                        Command="{Binding Control.ConfirmKillCommand}"
+                        CommandParameter="false"/>
+                            </StackPanel>
+                        </Grid>
+
+                        <!-- 오른쪽: 비상정지 버튼 -->
+                        <Grid Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center">
+                            <Button Content="⚠ 비상정지"
+                    Width="135" Height="90"
+                    Background="Red"
+                    Foreground="White"
+                    FontWeight="Bold"
+                    Command="{Binding EmergencyStopCommand}"
+                    BorderBrush="DarkRed"
+                    BorderThickness="2"
+                    Cursor="Hand"/>
+                        </Grid>
                     </Grid>
                 </GroupBox>
 
