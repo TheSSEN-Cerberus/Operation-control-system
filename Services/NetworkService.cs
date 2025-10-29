@@ -201,6 +201,12 @@ namespace Operation_Control_System.Services
         // =====================
         public void Dispose()
         {
+            ConnectionChanged = null;
+            StatusReceived = null;
+            FireReadyReceived = null;
+            BBoxReceived = null;
+            FireResultReceived = null;
+            TrackTargetReceived = null;
             _ = StopAsync();
             _watchdog.Dispose();
         }
