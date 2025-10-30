@@ -125,7 +125,7 @@ namespace Operation_Control_System.ViewModels
         {
             if ((DateTime.UtcNow - _lastBBoxTime).TotalMilliseconds > 300)
             {
-                App.Current.Dispatcher.Invoke(() => BBoxes.Clear());
+                App.Current?.Dispatcher?.Invoke(() => BBoxes.Clear());
             }
         }
 

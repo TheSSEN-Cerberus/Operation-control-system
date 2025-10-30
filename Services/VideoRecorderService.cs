@@ -49,7 +49,9 @@ namespace Operation_Control_System.Services
             _startTime = DateTime.Now;
             string fileName = $"{_startTime:yyyy-MM-dd_HH-mm-ss}.mp4";
             _outputPath = Path.Combine(_recordDir, fileName);
-            if(!Gst.Application.InitCheck())
+            _outputPath = _outputPath.Replace("\\", "/");  // 
+
+            if (!Gst.Application.InitCheck())
                 Gst.Application.Init();
             string pipelineDesc = $"appsrc name=src is-live=true format=time do-timestamp=true " +
                                   $"! videoconvert ! x264enc bitrate=4000 speed-preset=ultrafast tune=zerolatency " +
@@ -62,7 +64,7 @@ namespace Operation_Control_System.Services
                 throw new Exception("Failed to create GStreamer pipeline for recording.");
 
             _appsrc.Caps = Caps.FromString(
-                $"video/x-raw,format=BGRx,width={firstFrame.PixelWidth},height={firstFrame.PixelHeight},framerate=30/1");
+                $"video/x-raw,format=BGRA,width={firstFrame.PixelWidth},height={firstFrame.PixelHeight},framerate=30/1");
 
             _pipeline.SetState(State.Playing);
             _isRecording = true;
@@ -91,6 +93,7 @@ namespace Operation_Control_System.Services
                 {
                     _appsrc.PushBuffer(buf);
                 }
+                Debug.WriteLine($"[Recorder] PushFrame {merged.PixelWidth}x{merged.PixelHeight}");
             }
             catch (Exception ex)
             {
@@ -103,7 +106,6 @@ namespace Operation_Control_System.Services
         /// </summary>
         private BitmapSource RenderFrameWithBBoxes(BitmapSource frame, IEnumerable<BBoxViewModel>? boxes)
         {
-            Debug.WriteLine("[VideoRecorder]");
             if (boxes == null) return frame;
 
             int width = frame.PixelWidth;
@@ -147,16 +149,31 @@ namespace Operation_Control_System.Services
 
             try
             {
-                _appsrc?.EndOfStream();
+                if (_appsrc != null)
+                {
+                    _appsrc.EndOfStream();
+
+                    // ✅ EOS(End of Stream) 메시지 대기
+                    var bus = _pipeline.Bus;
+                    if (bus != null)
+                    {
+                        var msg = bus.TimedPopFiltered(
+                            5 * Gst.Constants.SECOND, MessageType.Eos);
+                        Debug.WriteLine("[VideoRecorder] EOS received: " + (msg != null));
+                        msg?.Dispose();
+                        bus.Dispose();
+                    }
+                }
+                Task.Delay(500);
                 _pipeline?.SetState(State.Null);
                 _pipeline?.Dispose();
                 _appsrc?.Dispose();
             }
-            catch { /* ignore */ }
-            _isRecording = false;
-            Debug.WriteLine($"[Recorder] ■ Recording stopped: {_outputPath}");
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"[VideoRecorder] Stop error: {ex.Message}");
+            }
         }
-
         public void Dispose() => Stop();
     }
 }

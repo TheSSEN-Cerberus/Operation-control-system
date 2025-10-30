@@ -5,7 +5,7 @@ using System.Diagnostics;
 
 namespace Operation_Control_System.ViewModels
 {
-    public class MainViewModel : BaseViewModel
+    public class MainViewModel : BaseViewModel, IDisposable
     {
         public NetworkViewModel Network { get; }
         public ControlViewModel Control { get; }
