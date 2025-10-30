@@ -1,4 +1,5 @@
 ﻿using Operation_Control_System.ViewModels;
+using System.Diagnostics;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
@@ -46,7 +47,16 @@ namespace Operation_Control_System
 
             (DataContext as ViewModels.MainViewModel)?.Control.OnKeyUp(e.Key);
         }
-
+        protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
+        {
+            base.OnClosing(e);
+            Debug.WriteLine("종료");
+            if (DataContext is IDisposable disposable)
+            {
+                disposable.Dispose();
+                System.Diagnostics.Debug.WriteLine("[MainWindow] MainViewModel disposed manually.");
+            }
+        }
 
 
     }

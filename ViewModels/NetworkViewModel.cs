@@ -30,9 +30,13 @@ public class NetworkViewModel : BaseViewModel
 
         _networkService.ConnectionChanged += (connected) =>
         {
-            Application.Current.Dispatcher.Invoke(() => IsConnected = connected);
+            Application.Current?.Dispatcher?.Invoke(() => IsConnected = connected);
         };
 
         _ = _networkService.StartAsync();
+    }
+    public void Dispose()
+    {
+        _networkService?.Dispose();
     }
 }

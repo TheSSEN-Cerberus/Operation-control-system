@@ -1,9 +1,11 @@
 ﻿using Gst;
 using Gst.App;
 using System;
+using System.Diagnostics;
 using System.Windows;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
+using Debug = System.Diagnostics.Debug;
 
 namespace Operation_Control_System.Services
 {
@@ -19,6 +21,9 @@ namespace Operation_Control_System.Services
 
         private static bool _gstInitialized;
         private bool _isRunning = false;
+
+        private int _frameCount = 0;
+        private Stopwatch _fpsTimer = new();
 
         public event Action<BitmapSource>? FrameArrived;
 
@@ -63,7 +68,7 @@ namespace Operation_Control_System.Services
     $"udpsrc port={udpPort} " +
     "caps=application/x-rtp,media=video,encoding-name=H264,payload=96,clock-rate=90000 ! " +
     "rtph264depay ! queue ! decodebin ! queue ! videoconvert ! queue ! " +
-    "video/x-raw,format=BGRx ! appsink name=sink emit-signals=true max-buffers=5 drop=false";
+    "video/x-raw,format=BGRx ! appsink name=sink emit-signals=true max-buffers=3 drop=true";
 
 
             try
@@ -76,6 +81,10 @@ namespace Operation_Control_System.Services
 
                 _pipeline.SetState(State.Playing);
                 StartGlibLoop();
+
+                // ✅ FPS 타이머 시작
+                _fpsTimer.Restart();
+                _frameCount = 0;
 
                 System.Diagnostics.Debug.WriteLine($"[GStreamer] ▶️ Pipeline started (UDP {udpPort})");
             }
@@ -137,6 +146,16 @@ namespace Operation_Control_System.Services
             finally
             {
                 sample.Buffer.Unmap(map);
+            }
+            // ✅ FPS 계산 및 로그 출력
+            _frameCount++;
+            double elapsed = _fpsTimer.Elapsed.TotalSeconds;
+            if (elapsed >= 1.0)
+            {
+                double fps = _frameCount / elapsed;
+                Debug.WriteLine($"[VideoStream] FPS: {fps:F1}");
+                _fpsTimer.Restart();
+                _frameCount = 0;
             }
         }
 

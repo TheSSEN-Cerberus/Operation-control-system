@@ -21,6 +21,8 @@ namespace Operation_Control_System.ViewModels
     {
         private readonly VideoStreamService _videoService;
         private readonly NetworkService _networkService;
+        private readonly VideoRecorderService _recorder = new();
+
         private readonly ControlViewModel _controlViewModel;
 
 
@@ -63,9 +65,13 @@ namespace Operation_Control_System.ViewModels
         }
 
         // Gstreamer 영상 수신
-        private void OnFrameArrived(BitmapSource frame)
+        private async void OnFrameArrived(BitmapSource frame)
         {
             CurrentFrame = frame;
+            if (!_recorder.IsRecording)
+                await _recorder.StartAsync(frame);
+
+            await _recorder.PushFrameAsync(frame, BBoxes);
         }
 
         // BBox 데이터 수신
@@ -79,7 +85,7 @@ namespace Operation_Control_System.ViewModels
             int frameWidth = CurrentFrame.PixelWidth;
             int frameHeight = CurrentFrame.PixelHeight;
 
-            App.Current.Dispatcher.Invoke(() =>
+            App.Current?.Dispatcher?.Invoke(() =>
             {
                 // ① 현재 수신된 ID 목록
                 var newIds = bboxData.Objects.Select(o => o.Id).ToHashSet();
@@ -119,7 +125,7 @@ namespace Operation_Control_System.ViewModels
         {
             if ((DateTime.UtcNow - _lastBBoxTime).TotalMilliseconds > 300)
             {
-                App.Current.Dispatcher.Invoke(() => BBoxes.Clear());
+                App.Current?.Dispatcher?.Invoke(() => BBoxes.Clear());
             }
         }
 
@@ -165,6 +171,11 @@ namespace Operation_Control_System.ViewModels
         public void Stop()
         {
             _videoService.Stop();
+            _recorder.Stop();
+        }
+        public void Dispose()
+        {
+            Stop();
         }
 
     }
