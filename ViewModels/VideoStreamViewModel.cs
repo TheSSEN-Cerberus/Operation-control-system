@@ -171,6 +171,11 @@ namespace Operation_Control_System.ViewModels
         public void Stop()
         {
             _videoService.Stop();
+            _recorder.Stop();
+        }
+        public void Dispose()
+        {
+            Stop();
         }
 
     }

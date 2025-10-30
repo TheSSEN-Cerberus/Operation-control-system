@@ -62,7 +62,7 @@ namespace Operation_Control_System.Services
                 throw new Exception("Failed to create GStreamer pipeline for recording.");
 
             _appsrc.Caps = Caps.FromString(
-                $"video/x-raw,format=BGR,width={firstFrame.PixelWidth},height={firstFrame.PixelHeight},framerate=30/1");
+                $"video/x-raw,format=BGRx,width={firstFrame.PixelWidth},height={firstFrame.PixelHeight},framerate=30/1");
 
             _pipeline.SetState(State.Playing);
             _isRecording = true;
@@ -103,6 +103,7 @@ namespace Operation_Control_System.Services
         /// </summary>
         private BitmapSource RenderFrameWithBBoxes(BitmapSource frame, IEnumerable<BBoxViewModel>? boxes)
         {
+            Debug.WriteLine("[VideoRecorder]");
             if (boxes == null) return frame;
 
             int width = frame.PixelWidth;
@@ -140,6 +141,7 @@ namespace Operation_Control_System.Services
         /// </summary>
         public void Stop()
         {
+            Debug.WriteLine("[VideoRecorder] Stop");
             if (!_isRecording)
                 return;
 
@@ -151,7 +153,6 @@ namespace Operation_Control_System.Services
                 _appsrc?.Dispose();
             }
             catch { /* ignore */ }
-
             _isRecording = false;
             Debug.WriteLine($"[Recorder] ■ Recording stopped: {_outputPath}");
         }

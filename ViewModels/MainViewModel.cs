@@ -82,5 +82,14 @@ namespace Operation_Control_System.ViewModels
             VideoStream.SelectedBBoxInfo = "객체 정보 없음";
             Debug.WriteLine("[System] ✅ State Reset Done (Network kept alive)");
         }
+
+        public void Dispose()
+        {
+
+            VideoStream?.Dispose();
+            Network?.Dispose();
+            //Control?.Dispose();
+            //Map.Dispose();
+        }
     }
 }
