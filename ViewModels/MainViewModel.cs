@@ -42,7 +42,7 @@ namespace Operation_Control_System.ViewModels
                 // 1️⃣ 보드로 비상정지 명령 송신
                 await _networkService.SendAsync(new Message<EmergencyStopData>
                 {
-                    Type = "emergency_stop",
+                    Type = "soft_reset",
                     Data = new EmergencyStopData { reset = true }
                 });
 

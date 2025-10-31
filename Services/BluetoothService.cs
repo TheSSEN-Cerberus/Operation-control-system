@@ -7,12 +7,14 @@ using System.Threading.Tasks;
 using System.Windows;
 using Windows.Devices.Bluetooth;
 using Windows.Devices.Bluetooth.GenericAttributeProfile;
+using Windows.Devices.Enumeration;
 using Windows.Storage.Streams;
 
 namespace Operation_Control_System.Services
 {
     public class BluetoothService : IDisposable
     {
+        private readonly SemaphoreSlim _connectLock = new(1, 1);
         private BluetoothLEDevice? _device;
         private GattCharacteristic? _commandCharacteristic;
         private CancellationTokenSource? _reconnectCts;
@@ -21,6 +23,7 @@ namespace Operation_Control_System.Services
         private readonly Guid _cmdUuid;
         private readonly ushort _commandHandle;
         private readonly string _macAddress;
+        private BluetoothConnectionStatus _lastStatus;
 
         public string MoveCommand { get; }
         public string StopCommand { get; }
@@ -60,25 +63,19 @@ namespace Operation_Control_System.Services
         {
             _reconnectCts = new CancellationTokenSource();
             var token = _reconnectCts.Token;
+            bool lastConnected = false;
 
             _ = Task.Run(async () =>
             {
                 while (!token.IsCancellationRequested)
                 {
-                    Debug.WriteLine(IsConnected);
-                    if (!IsConnected)
+                    if (_device == null || _device.ConnectionStatus == BluetoothConnectionStatus.Disconnected)
                     {
-                        Debug.WriteLine("[BLE] 🔄 Trying to connect...");
                         bool ok = await ConnectAsync();
-                        if (ok)
+                        if (ok != lastConnected)
                         {
-                            Debug.WriteLine("[BLE] ✅ Connected to BLE device.");
-                            ConnectionChanged?.Invoke(true);
-                        }
-                        else
-                        {
-                            Debug.WriteLine("[BLE] ❌ Connection failed, retrying...");
-                            ConnectionChanged?.Invoke(false);
+                            ConnectionChanged?.Invoke(ok);
+                            lastConnected = ok;
                         }
                     }
 
@@ -89,26 +86,43 @@ namespace Operation_Control_System.Services
 
         public async Task<bool> ConnectAsync()
         {
+            await _connectLock.WaitAsync();
             try
             {
-                _device?.Dispose();
-                await Task.Delay(500);
-                _device = null;
-                _commandCharacteristic = null;
+
+                if (_device != null)
+                {
+                    _device.ConnectionStatusChanged -= OnConnectionStatusChanged; // 기존 이벤트 해제
+                    _device.Dispose();
+                    _device = null;
+                    _commandCharacteristic = null;
+
+                }
+
 
                 ulong address = ConvertMacToULong(_macAddress);
-                _device = await BluetoothLEDevice.FromBluetoothAddressAsync(address);
 
+                var selector = BluetoothLEDevice.GetDeviceSelectorFromBluetoothAddress(address);
+                var devices = await DeviceInformation.FindAllAsync(selector);
+                if (devices.Count == 0)
+                {
+                    Debug.WriteLine("[BLE] ⚠ Device not found (power off?)");
+                    return false;
+                }
+
+                _device = await BluetoothLEDevice.FromIdAsync(devices[0].Id);
                 if (_device == null)
                 {
-                    Debug.WriteLine("[BLE] ❌ Device not found.");
+                    Debug.WriteLine("[BLE] ❌ Device creation failed.");
                     return false;
                 }
                 await Task.Delay(1000);
-                var services = await _device.GetGattServicesAsync();
+                _device.ConnectionStatusChanged += OnConnectionStatusChanged;
+
+                var services = await _device.GetGattServicesAsync(BluetoothCacheMode.Uncached);
                 foreach (var service in services.Services)
                 {
-                    var characteristics = await service.GetCharacteristicsAsync();
+                    var characteristics = await service.GetCharacteristicsAsync(BluetoothCacheMode.Uncached);
                     foreach (var characteristic in characteristics.Characteristics)
                     {
                         if (characteristic.Uuid == _cmdUuid)
@@ -127,6 +141,10 @@ namespace Operation_Control_System.Services
                 Debug.WriteLine($"[BLE] ❌ Connect error: {ex.Message}");
                 return false;
             }
+            finally
+            {
+                _connectLock.Release();
+            }
         }
 
         public async Task SendCommandAsync(string hexCommand)
@@ -140,11 +158,27 @@ namespace Operation_Control_System.Services
 
             try
             {
+                //byte[] bytes = ConvertHexToBytes(hexCommand);
+                //using var writer = new DataWriter();
+                //writer.WriteBytes(bytes);
+                //var status = await _commandCharacteristic.WriteValueAsync(writer.DetachBuffer());
+                //Debug.WriteLine($"[BLE] → Sent {hexCommand} (Status: {status})");
+
                 byte[] bytes = ConvertHexToBytes(hexCommand);
                 using var writer = new DataWriter();
                 writer.WriteBytes(bytes);
                 var status = await _commandCharacteristic.WriteValueAsync(writer.DetachBuffer());
-                Debug.WriteLine($"[BLE] → Sent {hexCommand} (Status: {status})");
+
+                if (status != GattCommunicationStatus.Success)
+                {
+                    Debug.WriteLine($"[BLE] ❌ Write failed, status={status}");
+                    _commandCharacteristic = null;
+                    _ = ConnectAsync();
+                }
+                else
+                {
+                    Debug.WriteLine($"[BLE] → Sent {hexCommand} (Status: {status})");
+                }
             }
             catch (Exception ex)
             {
@@ -172,6 +206,16 @@ namespace Operation_Control_System.Services
             return result;
         }
 
+        private void OnConnectionStatusChanged(BluetoothLEDevice sender, object args)
+        {
+            if (sender.ConnectionStatus == _lastStatus)
+                return; // 🔹 상태 변화 없으면 무시
+
+            _lastStatus = sender.ConnectionStatus;
+            bool connected = sender.ConnectionStatus == BluetoothConnectionStatus.Connected;
+            Debug.WriteLine($"[BLE] 🔔 Connection changed → {connected}");
+            ConnectionChanged?.Invoke(connected);
+        }
         public void Dispose()
         {
             _reconnectCts?.Cancel();

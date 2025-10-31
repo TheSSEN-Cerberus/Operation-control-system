@@ -96,7 +96,7 @@ namespace Operation_Control_System.Services
         private void OnDataReceived(byte[] data, IPEndPoint sender)
         {
             string json = Encoding.UTF8.GetString(data);
-            Console.WriteLine($"[Network] Received from {sender}: {json}");
+            //Debug.WriteLine($"[Network] Received from {sender}: {json}");
 
             try
             {

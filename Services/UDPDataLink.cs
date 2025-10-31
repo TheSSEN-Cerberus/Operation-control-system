@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
@@ -34,7 +35,7 @@ namespace Operation_Control_System.Services
 
             var section = config.GetSection("NetworkConfig");
 
-            RemoteIP = section["RemoteIP"] ?? "127.0.0.1";
+            //RemoteIP = section["RemoteIP"] ?? "127.0.0.1";
             RemotePort = int.Parse(section["RemotePort"] ?? "50000");
             LocalPort = int.Parse(section["LocalPort"] ?? "50000");
         }
@@ -67,6 +68,15 @@ namespace Operation_Control_System.Services
                 while (!token.IsCancellationRequested && _udp != null)
                 {
                     var result = await _udp.ReceiveAsync(token);
+                    if (string.IsNullOrWhiteSpace(RemoteIP) || RemoteIP == "0.0.0.0")
+                    {
+                        Debug.WriteLine(RemoteIP);
+                        Debug.WriteLine(RemotePort);
+
+                        RemoteIP = result.RemoteEndPoint.Address.ToString();
+                        RemotePort = result.RemoteEndPoint.Port; // 필요 시 포트도 같이 고정
+                        System.Diagnostics.Debug.WriteLine($"[UDP] Remote IP fixed: {RemoteIP}:{RemotePort}");
+                    }
                     DataReceived?.Invoke(result.Buffer, result.RemoteEndPoint);
                 }
             }
