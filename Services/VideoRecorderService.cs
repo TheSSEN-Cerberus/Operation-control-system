@@ -93,7 +93,6 @@ namespace Operation_Control_System.Services
                 {
                     _appsrc.PushBuffer(buf);
                 }
-                Debug.WriteLine($"[Recorder] PushFrame {merged.PixelWidth}x{merged.PixelHeight}");
             }
             catch (Exception ex)
             {
