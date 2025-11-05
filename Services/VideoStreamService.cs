@@ -110,7 +110,7 @@ namespace Operation_Control_System.Services
         /// </summary>
         private void OnNewSample(object sender, EventArgs args)
         {
-            //System.Diagnostics.Debug.WriteLine($"이미지 수신중");
+            System.Diagnostics.Debug.WriteLine($"이미지 수신중");
             using var sample = _appsink!.PullSample();
             if (sample == null) return;
 

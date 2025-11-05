@@ -26,7 +26,7 @@ namespace Operation_Control_System.Services
 
         public string MoveCommand { get; }
         public string StopCommand { get; }
-        private string LastCommand;
+        private string? LastCommand;
 
         private DateTime _lastCommandTime = DateTime.MinValue;
 
