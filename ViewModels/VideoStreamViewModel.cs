@@ -22,7 +22,6 @@ namespace Operation_Control_System.ViewModels
         private readonly VideoStreamService _videoService;
         private readonly NetworkService _networkService;
         private readonly VideoRecorderService _recorder = new();
-
         private readonly ControlViewModel _controlViewModel;
 
 
@@ -49,6 +48,9 @@ namespace Operation_Control_System.ViewModels
         private DateTime _lastBBoxTime = DateTime.MinValue;
         private readonly Timer _bboxTimeoutTimer;
 
+        private DateTime _lastFrameTime = DateTime.MinValue;
+        private readonly Timer _frameTimeoutTimer;
+
         public VideoStreamViewModel(NetworkService networkService, ControlViewModel controlViewModel)
         {
             _controlViewModel = controlViewModel;
@@ -62,12 +64,17 @@ namespace Operation_Control_System.ViewModels
             _bboxTimeoutTimer = new Timer(500);
             _bboxTimeoutTimer.Elapsed += (_, __) => CheckBBoxTimeout();
             _bboxTimeoutTimer.Start();
+
+            _frameTimeoutTimer = new System.Timers.Timer(1000);
+            _frameTimeoutTimer.Elapsed += (_, __) => CheckFrameTimeout();
+            _frameTimeoutTimer.Start();
         }
 
         // Gstreamer 영상 수신
         private async void OnFrameArrived(BitmapSource frame)
         {
             CurrentFrame = frame;
+            _lastFrameTime = DateTime.UtcNow;
             if (!_recorder.IsRecording)
                 await _recorder.StartAsync(frame);
 
@@ -126,6 +133,20 @@ namespace Operation_Control_System.ViewModels
             if ((DateTime.UtcNow - _lastBBoxTime).TotalMilliseconds > 300)
             {
                 App.Current?.Dispatcher?.Invoke(() => BBoxes.Clear());
+            }
+        }
+
+        private void CheckFrameTimeout()
+        {
+            if (CurrentFrame == null)
+                return;
+
+            if ((DateTime.UtcNow - _lastFrameTime).TotalSeconds > 1)
+            {
+                App.Current?.Dispatcher?.Invoke(() =>
+                {
+                    CurrentFrame = null;
+                });
             }
         }
 

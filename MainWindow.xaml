@@ -36,6 +36,22 @@
         <Border Grid.Column="0" Margin="5" Background="#111" BorderBrush="{StaticResource BorderBrushDark}" BorderThickness="1" CornerRadius="6">
             <Grid>
                 <Image Source="{Binding VideoStream.CurrentFrame}" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Top"/>
+                <!-- 🎞 로딩 애니메이션 -->
+                <Viewbox Stretch="Uniform"
+         HorizontalAlignment="Center"
+         VerticalAlignment="Top">
+                <Grid Visibility="{Binding VideoStream.CurrentFrame, Converter={StaticResource NullToVisibilityConverter}}"
+              Background="#66000000"
+              Width="640" Height="480"
+              HorizontalAlignment="Center"
+              VerticalAlignment="Top">
+                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                        <ProgressBar IsIndeterminate="True" Width="120" Height="10" Foreground="White"/>
+                    </StackPanel>
+                </Grid>
+                </Viewbox>
+                
+                
                 <ItemsControl ItemsSource="{Binding VideoStream.BBoxes}">
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
