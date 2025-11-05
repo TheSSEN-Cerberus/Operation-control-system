@@ -13,15 +13,17 @@ namespace Operation_Control_System.ViewModels
         public VideoStreamViewModel VideoStream { get; }
 
         private readonly NetworkService _networkService;
+        private readonly BluetoothService _bluetoothService;
 
         public RelayCommand EmergencyStopCommand { get; }
         public MainViewModel()
         {
             // 단일 네트워크 서비스
             _networkService = new NetworkService();
+            _bluetoothService = new BluetoothService();
 
-            Network = new NetworkViewModel(_networkService);
-            Control = new ControlViewModel(_networkService);
+            Network = new NetworkViewModel(_networkService, _bluetoothService);
+            Control = new ControlViewModel(_networkService, _bluetoothService);
             VideoStream = new VideoStreamViewModel(_networkService, Control);
             Map = new MapViewModel(_networkService);
 
@@ -40,7 +42,7 @@ namespace Operation_Control_System.ViewModels
                 // 1️⃣ 보드로 비상정지 명령 송신
                 await _networkService.SendAsync(new Message<EmergencyStopData>
                 {
-                    Type = "emergency_stop",
+                    Type = "soft_reset",
                     Data = new EmergencyStopData { reset = true }
                 });
 
@@ -88,7 +90,7 @@ namespace Operation_Control_System.ViewModels
 
             VideoStream?.Dispose();
             Network?.Dispose();
-            //Control?.Dispose();
+            Control?.Dispose();
             //Map.Dispose();
         }
     }

@@ -84,7 +84,8 @@ namespace Operation_Control_System.Services
 
             try
             {
-                var merged = await Task.Run(() => RenderFrameWithBBoxes(frame, boxes));
+                var snapshot = boxes?.ToList();
+                var merged = await Task.Run(() => RenderFrameWithBBoxes(frame, snapshot));
 
                 int stride = merged.PixelWidth * (merged.Format.BitsPerPixel / 8);
                 byte[] pixels = new byte[stride * merged.PixelHeight];
@@ -93,7 +94,6 @@ namespace Operation_Control_System.Services
                 {
                     _appsrc.PushBuffer(buf);
                 }
-                Debug.WriteLine($"[Recorder] PushFrame {merged.PixelWidth}x{merged.PixelHeight}");
             }
             catch (Exception ex)
             {

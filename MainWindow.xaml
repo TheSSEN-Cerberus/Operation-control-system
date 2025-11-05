@@ -82,18 +82,22 @@
 
                     <!-- 네트워크 상태 -->
                     <StackPanel Orientation="Horizontal" Grid.Column="0" VerticalAlignment="Center">
-                        <TextBlock Text="Zynq 네트워크 상태: " VerticalAlignment="Center"/>
+                        <TextBlock Text="Netowrk " VerticalAlignment="Center" />
                         <Ellipse Width="20" Height="20"
-                                 Fill="{Binding Network.StatusColor}"
+                                 Fill="{Binding Network.NetworkStatusColor}"
                                  Stroke="Black" StrokeThickness="1"
                                  VerticalAlignment="Center"/>
-                        <TextBlock Text="{Binding Network.StatusText}"
-                                   Margin="5,0,0,0" VerticalAlignment="Center"/>
-                    </StackPanel>
+                        <Rectangle Width="40" Fill="Transparent"/>
 
-                    <!-- 구분선 -->
-                    <Separator Grid.Column="1" Margin="10,0" Width="1"
-                               HorizontalAlignment="Center" VerticalAlignment="Stretch"/>
+                        <TextBlock Text="BLE " VerticalAlignment="Center" />
+                        <Ellipse Width="20" Height="20"
+                                 Fill="{Binding Network.BleStatusColor}"
+                                 Stroke="Black" StrokeThickness="1"
+                                 VerticalAlignment="Center"/>
+                    </StackPanel>
+                    
+
+
 
                     <!-- 시작 위치 입력 -->
                     <StackPanel Orientation="Horizontal" Grid.Column="2" VerticalAlignment="Center">
@@ -107,8 +111,10 @@
                                 Command="{Binding Map.SetStartPositionCommand}"/>
                     </StackPanel>
                 </Grid>
-
-                <Separator Margin="0,5"/>
+                <!-- 구분선 -->
+                <Separator Grid.Column="1" Margin="10,0" Width="1"
+                               HorizontalAlignment="Center" VerticalAlignment="Stretch"/>
+                <Separator Margin="0,5" />
 
                 <!-- 2행: 레이저/격발/운용모드 + 현재 로봇 위경도 -->
                 <Grid Margin="0,0,0,10">

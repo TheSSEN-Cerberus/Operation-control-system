@@ -18,11 +18,13 @@ namespace Operation_Control_System.ViewModels
     {
         // --- 의존성 주입 필드 ---
         private readonly NetworkService _networkService;
-
+        private readonly BluetoothService _bluetoothService;
         // --- 생성자 ---
-        public ControlViewModel(NetworkService networkService)
+        public ControlViewModel(NetworkService networkService, BluetoothService bluetoothService)
         {
             _networkService = networkService;
+            _bluetoothService = bluetoothService;
+
 
             // ✅ 명령 초기화
             ConfirmKillCommand = new RelayCommand(OnConfirmKill);
@@ -31,11 +33,14 @@ namespace Operation_Control_System.ViewModels
             // ✅ 네트워크 서비스 이벤트 구독
             _networkService.FireReadyReceived += OnFireReadyReceived;
             _networkService.TrackTargetReceived += OnTrackTargetReceived;
+
+            _ = _bluetoothService.StartAutoConnectAsync();
         }
 
         // ====================================================================================================
         // --- 속성 (Properties) ---
         // ====================================================================================================
+
 
         // --- 레이저 제어 ---
         private bool _isLaserOn;
@@ -377,6 +382,11 @@ namespace Operation_Control_System.ViewModels
             MoveForwardColor = (MovingState == 1) ? Brushes.LimeGreen : Brushes.Gray;
 
             _ = SendRobotMovingCommandAsync(MovingState); // 로봇 이동 명령 전송
+            if (_bluetoothService.IsConnected)
+            {
+                string cmd = (MovingState == 1) ? _bluetoothService.MoveCommand : _bluetoothService.StopCommand;
+                _ = _bluetoothService.SendCommandAsync(cmd);
+            }
 
             Debug.WriteLine($"[Control] Robot moving toggled → {MovingState}");
         }
@@ -612,6 +622,11 @@ namespace Operation_Control_System.ViewModels
             {
                 Debug.WriteLine($"[Control] OperationMode send error: {ex.Message}");
             }
+        }
+
+        public void Dispose()
+        {
+            _bluetoothService?.Dispose();
         }
     }
 }

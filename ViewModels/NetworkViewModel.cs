@@ -6,31 +6,53 @@ using System.Windows.Media;
 public class NetworkViewModel : BaseViewModel
 {
     private readonly NetworkService _networkService;
+    private readonly BluetoothService _bluetoothService;
 
-    private bool _isConnected;
-    public bool IsConnected
+
+    private bool _networkIsConnected;
+    public bool NetworkIsConnected
     {
-        get => _isConnected;
+        get => _networkIsConnected;
         set
         {
-            if (SetProperty(ref _isConnected, value))
+            if (SetProperty(ref _networkIsConnected, value))
             {
-                OnPropertyChanged(nameof(StatusText));
-                OnPropertyChanged(nameof(StatusColor));
+                OnPropertyChanged(nameof(NetworkStatusColor));
             }
         }
     }
 
-    public string StatusText => IsConnected ? "(연결됨)" : "(연결 끊김)";
-    public Brush StatusColor => IsConnected ? Brushes.LimeGreen : Brushes.Red;
+    public Brush NetworkStatusColor => _networkIsConnected ? Brushes.LimeGreen : Brushes.Red;
 
-    public NetworkViewModel(NetworkService networkService)
+    private bool _bleIsConnected;
+    public bool BleIsConnected
+    {
+        get => _bleIsConnected;
+        set
+        {
+            if (SetProperty(ref _bleIsConnected, value))
+            {
+                OnPropertyChanged(nameof(BleStatusColor));
+            }
+        }
+    }
+
+    public Brush BleStatusColor => _bleIsConnected ? Brushes.LimeGreen : Brushes.Red;
+
+    public NetworkViewModel(NetworkService networkService, BluetoothService bluetoothService)
     {
         _networkService = networkService;
+        _bluetoothService = bluetoothService;
+
 
         _networkService.ConnectionChanged += (connected) =>
         {
-            Application.Current?.Dispatcher?.Invoke(() => IsConnected = connected);
+            Application.Current?.Dispatcher?.Invoke(() => NetworkIsConnected = connected);
+        };
+
+        _bluetoothService.ConnectionChanged += (connected) =>
+        {
+            Application.Current?.Dispatcher?.Invoke(() => BleIsConnected = connected);
         };
 
         _ = _networkService.StartAsync();
