@@ -69,11 +69,11 @@ namespace Operation_Control_System.ViewModels
         /// </summary>
         public void Update(DetectedObject model, int frameWidth, int frameHeight)
         {
-            // 좌표 변환: (x1, y1, x2, y2)
-            X = model.BBox[0];
-            Y = model.BBox[1];
-            Width = model.BBox[2] - model.BBox[0];
-            Height = model.BBox[3] - model.BBox[1];
+
+            Width = model.BBox[2];
+            Height = model.BBox[3];
+            X = model.BBox[0] - (Width / 2.0);
+            Y = model.BBox[1] - (Height / 2.0);
         }
     }
 }
