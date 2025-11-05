@@ -14,6 +14,6 @@ namespace Operation_Control_System.Models
         public float Confidence { get; set; }
 
         [JsonPropertyName("bbox")]
-        public int[] BBox { get; set; } = new int[4]; // x1,y1,x2,y2
+        public int[] BBox { get; set; } = new int[4]; // x, y, w, h -> x,y : 중앙좌표, 가로, 세로
     }
 }
