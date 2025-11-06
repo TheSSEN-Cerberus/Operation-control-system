@@ -4,15 +4,16 @@ using Operation_Control_System.Models;
 using Operation_Control_System.Services;
 using System;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.Net;
 using System.Threading.Tasks;
+using System.Timers;
+using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using System.Timers;
-
+using DateTime = System.DateTime;
 using NetworkService = Operation_Control_System.Services.NetworkService;
 using Task = System.Threading.Tasks.Task;
-using DateTime = System.DateTime;
 using Timer = System.Timers.Timer;
 
 namespace Operation_Control_System.ViewModels
@@ -45,11 +46,16 @@ namespace Operation_Control_System.ViewModels
             set => SetProperty(ref _selectedBBoxInfo, value);
         }
 
+
         private DateTime _lastBBoxTime = DateTime.MinValue;
         private readonly Timer _bboxTimeoutTimer;
 
         private DateTime _lastFrameTime = DateTime.MinValue;
         private readonly Timer _frameTimeoutTimer;
+
+        public ICommand TrackCommand { get; }
+        public ICommand UntrackCommand { get; }
+        public ICommand RemoveDetectionCommand { get; }
 
         public VideoStreamViewModel(NetworkService networkService, ControlViewModel controlViewModel)
         {
@@ -58,6 +64,11 @@ namespace Operation_Control_System.ViewModels
             _videoService = new VideoStreamService();
             _videoService.FrameArrived += OnFrameArrived;
             _networkService.BBoxReceived += OnBBoxReceived;
+
+            // ✅ 버튼 명령 초기화
+            TrackCommand = new RelayCommand(OnTrack);
+            UntrackCommand = new RelayCommand(OnUntrack);
+            RemoveDetectionCommand = new RelayCommand(OnRemoveDetection);
 
 
             // ✅ 타임아웃 체크 타이머 (0.5초마다 검사)
@@ -110,8 +121,9 @@ namespace Operation_Control_System.ViewModels
                     var existing = BBoxes.FirstOrDefault(b => b.Id == model.Id);
                     if (existing != null)
                     {
-                        // 좌표만 업데이트
-                        existing.Update(model, frameWidth, frameHeight);
+                        // 좌표, 색상 업데이트
+                        existing.UpdatePos(model, frameWidth, frameHeight);
+                        existing.UpdateColor();
                     }
                     else
                     {
@@ -162,6 +174,63 @@ namespace Operation_Control_System.ViewModels
                     Data = new TrackTargetData { TargetId = id }
                 });
             }
+        }
+
+        // 🔸 추적 명령
+        private async void OnTrack(object? param)
+        {
+            if (param is int id)
+            {
+                var target = BBoxes.FirstOrDefault(x => x.Id == id);
+                if (target != null)
+                {
+                    target.IsTracked = true;
+
+                    await _networkService.SendAsync(new Message<TrackTargetData>
+                    {
+                        Type = "track_target",
+                        Data = new TrackTargetData { TargetId=id }  
+                    });
+
+                    System.Diagnostics.Debug.WriteLine($"[VideoStream] 🎯 Track start → ID={id}");
+                }
+            }
+        }
+
+        // 🔸 추적 해제
+        private async void OnUntrack(object? param)
+        {
+            if (param is int id)
+            {
+                var target = BBoxes.FirstOrDefault(x => x.Id == id);
+                if (target != null)
+                {
+                    target.IsTracked = false;
+
+                    await _networkService.SendAsync(new Message<TrackReleaseData>
+                    {
+                        Type = "track_release",
+                        Data = new TrackReleaseData { TargetId= id }
+                    });
+
+                    System.Diagnostics.Debug.WriteLine($"[VideoStream] 🟢 Track released → ID={id}");
+                }
+            }
+        }
+
+         //🔸 탐지 제거
+        private void OnRemoveDetection(object? param)
+        {
+            Debug.WriteLine("remove detection");
+            //if (param is int id)
+            //{
+            //    var target = BBoxes.FirstOrDefault(x => x.Id == id);
+            //    if (target != null)
+            //    {
+            //        BBoxes.Remove(target);
+            //        System.Diagnostics.Debug.WriteLine($"[VideoStream] ❌ Detection removed → ID={id}");
+            //    }
+            //}
         }
         public async Task StartAsync(int port = 5600)
         {

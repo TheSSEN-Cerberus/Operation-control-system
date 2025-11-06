@@ -35,7 +35,16 @@
         <!-- 🎥 좌측: 영상 + BBox -->
         <Border Grid.Column="0" Margin="5" Background="#111" BorderBrush="{StaticResource BorderBrushDark}" BorderThickness="1" CornerRadius="6">
             <Grid>
-                <Image Source="{Binding VideoStream.CurrentFrame}" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Top"/>
+                <Grid.RowDefinitions>
+                    <!-- 🎥 영상 영역 -->
+                    <RowDefinition Height="Auto"/>
+                    <!-- 📋 Target Info (남는 공간 차지) -->
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
+
+                <Grid Grid.Row="0">
+
+                    <Image Source="{Binding VideoStream.CurrentFrame}" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Top"/>
                 <!-- 🎞 로딩 애니메이션 -->
                 <Viewbox Stretch="Uniform"
          HorizontalAlignment="Center"
@@ -77,6 +86,59 @@
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
+                </Grid>
+                <!-- 📋 TARGET INFO -->
+                <GroupBox Grid.Row="1" Header="TARGET INFO">
+
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <DataGrid ItemsSource="{Binding VideoStream.BBoxes}"
+                          AutoGenerateColumns="False"
+                          CanUserAddRows="False"
+                          IsReadOnly="True"
+                          HeadersVisibility="Column"
+                          Background="#111"
+                          Foreground="White"
+                          BorderThickness="0"
+                          RowBackground="#222"
+                          AlternatingRowBackground="#333"
+                          GridLinesVisibility="None">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="ID" Binding="{Binding Id}" Width="50"/>
+                                <DataGridTextColumn Header="Class" Binding="{Binding ClassLabel}" Width="*"/>
+                                <DataGridTextColumn Header="Conf" Binding="{Binding Confidence, StringFormat={}{0:P1}}" Width="70"/>
+                                <DataGridTextColumn Header="Priority" Binding="{Binding Priority}" Width="70"/>
+
+                                <!-- Control 버튼 컬럼 -->
+                                <DataGridTemplateColumn Header="Control" Width="180">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" >
+                                                <Button Content="추적"
+                                        Padding="6,2"
+                                        FontSize="12"
+                                        Command="{Binding DataContext.TrackCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                        CommandParameter="{Binding Id}"/>
+                                                <Button Content="추적해제"
+                                        Padding="6,2"
+                                        FontSize="12"
+                                        Command="{Binding DataContext.UntrackCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                        CommandParameter="{Binding Id}"/>
+                                                <Button Content="탐지해제"
+                                        Padding="6,2"
+                                        FontSize="12"
+                                        Command="{Binding DataContext.RemoveDetectionCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                        CommandParameter="{Binding Id}"/>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </ScrollViewer>
+                </GroupBox>
+
+
             </Grid>
         </Border>
 
