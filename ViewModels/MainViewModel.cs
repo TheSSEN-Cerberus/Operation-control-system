@@ -18,6 +18,7 @@ namespace Operation_Control_System.ViewModels
         public RelayCommand EmergencyStopCommand { get; }
         public MainViewModel()
         {
+            Debug.WriteLine($"[VM] MainViewModel created at {DateTime.Now:HH:mm:ss.fff}, Thread={Environment.CurrentManagedThreadId}");
             // 단일 네트워크 서비스
             _networkService = new NetworkService();
             _bluetoothService = new BluetoothService();

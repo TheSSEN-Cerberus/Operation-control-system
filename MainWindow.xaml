@@ -10,9 +10,6 @@
         Foreground="{StaticResource TextBrush}"
         Loaded="Window_Loaded">
 
-    <Window.DataContext>
-        <local:MainViewModel/>
-    </Window.DataContext>
 
     <Window.Resources>
         <ResourceDictionary>
@@ -97,36 +94,37 @@
                           IsReadOnly="True"
                           HeadersVisibility="Column"
                           Background="#111"
-                          Foreground="White"
+                          Foreground="DarkGray"
                           BorderThickness="0"
                           RowBackground="#222"
-                          AlternatingRowBackground="#333"
-                          GridLinesVisibility="None">
+                          AlternatingRowBackground="#333">
+                            <DataGrid.Resources>
+                                <Style TargetType="DataGridColumnHeader">
+                                    <Setter Property="Background" Value="Gray"/>
+                                    <Setter Property="Foreground" Value="White"/>
+                                    <Setter Property="FontWeight" Value="Bold"/>
+                                </Style>
+                            </DataGrid.Resources>
                             <DataGrid.Columns>
-                                <DataGridTextColumn Header="ID" Binding="{Binding Id}" Width="50"/>
-                                <DataGridTextColumn Header="Class" Binding="{Binding ClassLabel}" Width="*"/>
-                                <DataGridTextColumn Header="Conf" Binding="{Binding Confidence, StringFormat={}{0:P1}}" Width="70"/>
-                                <DataGridTextColumn Header="Priority" Binding="{Binding Priority}" Width="70"/>
+                                <DataGridTextColumn Header="ID" Binding="{Binding Id}" Width="80" />
+                                <DataGridTextColumn Header="Class" Binding="{Binding ClassLabel}" Width="80"/>
+                                <DataGridTextColumn Header="Conf" Binding="{Binding Confidence, StringFormat={}{0:P1}}" Width="100"/>
+                                <DataGridTextColumn Header="Priority" Binding="{Binding Priority}" Width="80"/>
 
                                 <!-- Control 버튼 컬럼 -->
-                                <DataGridTemplateColumn Header="Control" Width="180">
+                                <DataGridTemplateColumn Header="Control" Width="*">
                                     <DataGridTemplateColumn.CellTemplate>
                                         <DataTemplate>
                                             <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" >
                                                 <Button Content="추적"
                                         Padding="6,2"
                                         FontSize="12"
-                                        Command="{Binding DataContext.TrackCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                        Command="{Binding VideoStream.TrackCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
                                         CommandParameter="{Binding Id}"/>
                                                 <Button Content="추적해제"
                                         Padding="6,2"
                                         FontSize="12"
-                                        Command="{Binding DataContext.UntrackCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
-                                        CommandParameter="{Binding Id}"/>
-                                                <Button Content="탐지해제"
-                                        Padding="6,2"
-                                        FontSize="12"
-                                        Command="{Binding DataContext.RemoveDetectionCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                        Command="{Binding VideoStream.UntrackCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
                                         CommandParameter="{Binding Id}"/>
                                             </StackPanel>
                                         </DataTemplate>
@@ -137,8 +135,6 @@
                         </DataGrid>
                     </ScrollViewer>
                 </GroupBox>
-
-
             </Grid>
         </Border>
 

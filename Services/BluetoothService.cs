@@ -108,7 +108,6 @@ namespace Operation_Control_System.Services
                             ConnectionChanged?.Invoke(false);
                         }
                     }
-
                     await Task.Delay(retryDelayMs, token);
                 }
             }, token);
@@ -133,7 +132,7 @@ namespace Operation_Control_System.Services
                 }
 
                 await Task.Delay(1000);
-                var services = await _device.GetGattServicesAsync();
+                var services = await _device.GetGattServicesAsync(BluetoothCacheMode.Uncached);
                 foreach (var service in services.Services)
                 {
                     var characteristics = await service.GetCharacteristicsAsync();

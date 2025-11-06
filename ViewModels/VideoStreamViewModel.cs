@@ -262,6 +262,8 @@ namespace Operation_Control_System.ViewModels
         {
             _videoService.Stop();
             _recorder.Stop();
+            _bboxTimeoutTimer.Close();
+            _frameTimeoutTimer.Close();
         }
         public void Dispose()
         {
