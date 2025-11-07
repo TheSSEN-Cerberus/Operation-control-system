@@ -1,243 +1,259 @@
 ﻿<Window x:Class="Operation_Control_System.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:local="clr-namespace:Operation_Control_System.ViewModels" 
+        xmlns:local="clr-namespace:Operation_Control_System.ViewModels"
         xmlns:gmap="clr-namespace:GMap.NET.WindowsPresentation;assembly=GMap.NET.WindowsPresentation"
         xmlns:gmapcore="clr-namespace:GMap.NET.MapProviders;assembly=GMap.NET.Core"
         Title="4족 보행 로봇 운용 통제 시스템"
         Height="768" Width="1280"
+        Background="{StaticResource BackgroundBrush}"
+        Foreground="{StaticResource TextBrush}"
         Loaded="Window_Loaded">
-    
 
 
-    <Window.DataContext>
-        <local:MainViewModel/>
-    </Window.DataContext>
-    
-    
+    <Window.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="Styles/Colors.xaml"/>
+                <ResourceDictionary Source="Styles/Buttons.xaml"/>
+                <ResourceDictionary Source="Styles/Panels.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Window.Resources>
 
     <Grid>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="2*"/>
+            <!-- 영상 -->
             <ColumnDefinition Width="2*"/>
+            <!-- 제어 및 상태 -->
         </Grid.ColumnDefinitions>
 
-        <!-- 좌측: 영상 및 객체 정보 -->
-        <Border Grid.Column="0" BorderBrush="DarkGray" BorderThickness="1" Margin="5">
+        <!-- 🎥 좌측: 영상 + BBox -->
+        <Border Grid.Column="0" Margin="5" Background="#111" BorderBrush="{StaticResource BorderBrushDark}" BorderThickness="1" CornerRadius="6">
             <Grid>
-                <!-- 영상 -->
-                <Image Source="{Binding VideoStream.CurrentFrame}"
-           Stretch="Uniform"
-           HorizontalAlignment="Center"
-           VerticalAlignment="Top" />
+                <Grid.RowDefinitions>
+                    <!-- 🎥 영상 영역 -->
+                    <RowDefinition Height="Auto"/>
+                    <!-- 📋 Target Info (남는 공간 차지) -->
+                    <RowDefinition Height="*"/>
+                </Grid.RowDefinitions>
 
-                <!-- BBox 오버레이 -->
+                <Grid Grid.Row="0">
+
+                    <Image Source="{Binding VideoStream.CurrentFrame}" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Top"/>
+                <!-- 🎞 로딩 애니메이션 -->
+                <Viewbox Stretch="Uniform"
+         HorizontalAlignment="Center"
+         VerticalAlignment="Top">
+                <Grid Visibility="{Binding VideoStream.CurrentFrame, Converter={StaticResource NullToVisibilityConverter}}"
+              Background="#66000000"
+              Width="640" Height="480"
+              HorizontalAlignment="Center"
+              VerticalAlignment="Top">
+                    <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                        <ProgressBar IsIndeterminate="True" Width="120" Height="10" Foreground="White"/>
+                    </StackPanel>
+                </Grid>
+                </Viewbox>
+                
+                
                 <ItemsControl ItemsSource="{Binding VideoStream.BBoxes}">
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
-                            <Canvas />
+                            <Canvas/>
                         </ItemsPanelTemplate>
                     </ItemsControl.ItemsPanel>
-
                     <ItemsControl.ItemContainerStyle>
                         <Style>
-                            <Setter Property="Canvas.Left" Value="{Binding X}" />
-                            <Setter Property="Canvas.Top" Value="{Binding Y}" />
+                            <Setter Property="Canvas.Left" Value="{Binding X}"/>
+                            <Setter Property="Canvas.Top" Value="{Binding Y}"/>
                         </Style>
                     </ItemsControl.ItemContainerStyle>
-
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <Border BorderBrush="{Binding BoxColor}"
-                                BorderThickness="2"
-                                Width="{Binding Width}"
-                                Height="{Binding Height}"
-                                Background="#20FF0000">
-                                <Border.InputBindings>
-                                    <MouseBinding Gesture="LeftClick" Command="{Binding ClickCommand}" />
-                                </Border.InputBindings>
-                                <StackPanel>
-                                    <TextBlock Text="{Binding Id}" Foreground="Yellow" FontWeight="Bold"/>
+                            <Border BorderBrush="{Binding BoxColor}" BorderThickness="2"
+                                    Width="{Binding Width}" Height="{Binding Height}"
+                                    Background="#20FF0000">
+                                    <Border.InputBindings>
+                                        <MouseBinding Gesture="LeftClick" Command="{Binding ClickCommand}" />
+                                    </Border.InputBindings>
+                                    <StackPanel>
+                                    <TextBlock Text="{Binding Id}" Foreground="{StaticResource HUDYellow}" FontWeight="Bold"/>
                                     <TextBlock Text="{Binding ClassLabel}" Foreground="White" FontSize="10"/>
                                 </StackPanel>
                             </Border>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
-
                 </ItemsControl>
+                </Grid>
+                <!-- 📋 TARGET INFO -->
+                <GroupBox Grid.Row="1" Header="TARGET INFO">
+
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <DataGrid ItemsSource="{Binding VideoStream.BBoxes}"
+                          AutoGenerateColumns="False"
+                          CanUserAddRows="False"
+                          IsReadOnly="True"
+                          HeadersVisibility="Column"
+                          Background="#111"
+                          Foreground="DarkGray"
+                          BorderThickness="0"
+                          RowBackground="#222"
+                          AlternatingRowBackground="#333">
+                            <DataGrid.Resources>
+                                <Style TargetType="DataGridColumnHeader">
+                                    <Setter Property="Background" Value="Gray"/>
+                                    <Setter Property="Foreground" Value="White"/>
+                                    <Setter Property="FontWeight" Value="Bold"/>
+                                </Style>
+                            </DataGrid.Resources>
+                            <DataGrid.Columns>
+                                <DataGridTextColumn Header="ID" Binding="{Binding Id}" Width="80" />
+                                <DataGridTextColumn Header="Class" Binding="{Binding ClassLabel}" Width="80"/>
+                                <DataGridTextColumn Header="Conf" Binding="{Binding Confidence, StringFormat={}{0:P1}}" Width="100"/>
+                                <DataGridTextColumn Header="Priority" Binding="{Binding Priority}" Width="80"/>
+
+                                <!-- Control 버튼 컬럼 -->
+                                <DataGridTemplateColumn Header="Control" Width="*">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" >
+                                                <Button Content="추적"
+                                        Padding="6,2"
+                                        FontSize="12"
+                                        Command="{Binding DataContext.VideoStream.TrackCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                        CommandParameter="{Binding Id}"/>
+                                                <Button Content="추적해제"
+                                        Padding="6,2"
+                                        FontSize="12"
+                                        Command="{Binding DataContext.VideoStream.UntrackCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                        CommandParameter="{Binding Id}"/>
+                                            </StackPanel>
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </ScrollViewer>
+                </GroupBox>
             </Grid>
         </Border>
 
-        <!-- 우측 제어 및 상태 -->
-        <ScrollViewer Grid.Column="1" Margin="10" VerticalScrollBarVisibility="Auto">
-            <StackPanel>
+        <!-- 🎛 우측: 제어 및 상태 -->
+        <Grid Grid.Column="1" Margin="10">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <!-- NETWORK -->
+                <RowDefinition Height="Auto"/>
+                <!-- CONTROL MODE -->
+                <RowDefinition Height="Auto"/>
+                <!-- TARGET -->
+                <RowDefinition Height="Auto"/>
+                <!-- MOVEMENT -->
+                <RowDefinition Height="*"/>
+                <!-- MAP -->
+            </Grid.RowDefinitions>
 
-                <!-- 1행: 네트워크 상태 + 시작 위치 입력 -->
-                <Grid Margin="0,0,0,10">
+            <!-- 네트워크 상태 -->
+            <GroupBox Header="NETWORK" Grid.Row="0" Margin="0,0,0,5">
+                <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="2*"/>
                     </Grid.ColumnDefinitions>
 
-                    <!-- 네트워크 상태 -->
-                    <StackPanel Orientation="Horizontal" Grid.Column="0" VerticalAlignment="Center">
-                        <TextBlock Text="Netowrk " VerticalAlignment="Center" />
-                        <Ellipse Width="20" Height="20"
-                                 Fill="{Binding Network.NetworkStatusColor}"
-                                 Stroke="Black" StrokeThickness="1"
-                                 VerticalAlignment="Center"/>
-                        <Rectangle Width="40" Fill="Transparent"/>
-
-                        <TextBlock Text="BLE " VerticalAlignment="Center" />
-                        <Ellipse Width="20" Height="20"
-                                 Fill="{Binding Network.BleStatusColor}"
-                                 Stroke="Black" StrokeThickness="1"
-                                 VerticalAlignment="Center"/>
+                    <StackPanel Orientation="Horizontal" Grid.Column="0">
+                        <TextBlock Text="Network:" VerticalAlignment="Center" Margin="5"/>
+                        <Ellipse Width="20" Height="20" Fill="{Binding Network.NetworkStatusColor}" Stroke="Black" StrokeThickness="1" Margin="5"/>
+                        <TextBlock Text="BLE:" VerticalAlignment="Center" Margin="5"/>
+                        <Ellipse Width="20" Height="20" Fill="{Binding Network.BleStatusColor}" Stroke="Black" StrokeThickness="1" Margin="5"/>
                     </StackPanel>
-                    
 
-
-
-                    <!-- 시작 위치 입력 -->
-                    <StackPanel Orientation="Horizontal" Grid.Column="2" VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal" Grid.Column="1" HorizontalAlignment="Right">
                         <TextBlock Text="위도:" VerticalAlignment="Center" Margin="5"/>
-                        <TextBox Text="{Binding Map.StartLatitude, Mode=TwoWay}"
-                                 Width="100" Margin="5"/>
+                        <TextBox Text="{Binding Map.StartLatitude, Mode=TwoWay}" Width="100" Margin="5"/>
                         <TextBlock Text="경도:" VerticalAlignment="Center" Margin="5"/>
-                        <TextBox Text="{Binding Map.StartLongitude, Mode=TwoWay}"
-                                 Width="100" Margin="5"/>
-                        <Button Content="설정" Width="60" Margin="5"
-                                Command="{Binding Map.SetStartPositionCommand}"/>
+                        <TextBox Text="{Binding Map.StartLongitude, Mode=TwoWay}" Width="100" Margin="5"/>
+                        <Button Content="설정" Command="{Binding Map.SetStartPositionCommand}" Width="70" Margin="5"/>
                     </StackPanel>
                 </Grid>
-                <!-- 구분선 -->
-                <Separator Grid.Column="1" Margin="10,0" Width="1"
-                               HorizontalAlignment="Center" VerticalAlignment="Stretch"/>
-                <Separator Margin="0,5" />
+            </GroupBox>
 
-                <!-- 2행: 레이저/격발/운용모드 + 현재 로봇 위경도 -->
-                <Grid Margin="0,0,0,10">
+            <!-- 제어 모드 -->
+            <GroupBox Header="CONTROL MODE" Grid.Row="1" Margin="0,0,0,5">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                    <StackPanel Orientation="Horizontal" Margin="5">
+                        <TextBlock Text="레이저:" Margin="5"/>
+                        <ToggleButton Content="{Binding Control.LaserToggleText}" IsChecked="{Binding Control.IsLaserOn, Mode=TwoWay}" Width="80" Height="25"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="5">
+                        <TextBlock Text="격발:" Margin="5"/>
+                        <ToggleButton Content="{Binding Control.FireModeText}" IsChecked="{Binding Control.IsAutoFire, Mode=TwoWay}" Width="80" Height="25"/>
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Margin="5">
+                        <TextBlock Text="운용:" Margin="5"/>
+                        <ComboBox ItemsSource="{Binding Control.OperationModes}"
+                                  SelectedItem="{Binding Control.SelectedOperationMode, Mode=TwoWay}"
+                                  Width="120"/>
+                    </StackPanel>
+                </StackPanel>
+            </GroupBox>
+
+            <!-- 표적 상태 -->
+            <GroupBox Header="SHOTTING CONTROL" Grid.Row="2" Margin="0,0,0,5">
+                <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="2*"/>
-                        <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
 
-                    <!-- 레이저/격발/운용모드 -->
-                    <StackPanel Orientation="Horizontal" Grid.Column="0" VerticalAlignment="Center">
-                        <StackPanel Orientation="Horizontal" Margin="5">
-                            <TextBlock Text="레이저:" VerticalAlignment="Center"/>
-                            <ToggleButton Content="{Binding Control.LaserToggleText}"
-                                          IsChecked="{Binding Control.IsLaserOn, Mode=TwoWay}"
-                                          Width="70" Height="25"/>
-                        </StackPanel>
-                        <StackPanel Orientation="Horizontal" Margin="5">
-                            <TextBlock Text="격발:" VerticalAlignment="Center"/>
-                            <ToggleButton Content="{Binding Control.FireModeText}"
-                                          IsChecked="{Binding Control.IsAutoFire, Mode=TwoWay}"
-                                          Width="70" Height="25"/>
-                        </StackPanel>
-                        <StackPanel Orientation="Horizontal" Margin="5">
-                            <TextBlock Text="운용:" VerticalAlignment="Center"/>
-                            <ComboBox ItemsSource="{Binding Control.OperationModes}"
-                                      SelectedItem="{Binding Control.SelectedOperationMode, Mode=TwoWay}"
-                                      Width="100"/>
-                        </StackPanel>
-                    </StackPanel>
+                    <!-- 🔹 왼쪽: 버튼 3개 (격발 / HIT / MISS) -->
+                    <UniformGrid Grid.Column="0" Columns="3" HorizontalAlignment="Stretch" VerticalAlignment="Center" Margin="10">
+                        <Button Content="격발"
+                    Command="{Binding Control.SendFireCommand}"
+                    IsEnabled="{Binding Control.CanFire}"
+                    FontWeight="Bold"
+                    Height="70"
+                    Margin="5"/>
 
-                    <!-- 구분선 -->
-                    <Separator Grid.Column="1" Margin="10,0" Width="0"
-                               HorizontalAlignment="Center" VerticalAlignment="Stretch"/>
+                        <Button Content="HIT"
+                    Command="{Binding Control.ConfirmKillCommand}"
+                    CommandParameter="true"
+                    FontWeight="Bold"
+                    Height="70"
+                    Margin="5"/>
 
-                    <!-- 현재 로봇 위경도 -->
-                    <StackPanel Orientation="Horizontal" Grid.Column="2" VerticalAlignment="Center">
-                        <TextBlock Text="위도: " VerticalAlignment="Center" Margin="5"/>
-                        <TextBlock Text="{Binding Map.StartLatitude, Mode=TwoWay}" Width="50" Margin="5"/>
-                        <TextBlock Text="경도: " VerticalAlignment="Center" Margin="5"/>
-                        <TextBlock Text="{Binding Map.StartLongitude, Mode=TwoWay}" Width="50" Margin="5"/>
+                        <Button Content="MISS"
+                    Command="{Binding Control.ConfirmKillCommand}"
+                    CommandParameter="false"
+                    FontWeight="Bold"
+                    Height="70"
+                    Margin="5"/>
+                    </UniformGrid>
+
+                    <!-- 🔸 오른쪽: 비상정지 버튼 -->
+                    <StackPanel Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="5">
+                        <Button Content="⚠ 비상정지"
+                    Style="{StaticResource EmergencyButtonStyle}"
+                    Command="{Binding EmergencyStopCommand}"
+                    Width="135" Height="90"/>
                     </StackPanel>
                 </Grid>
-                <Separator Margin="0,5"/>
+            </GroupBox>
 
-                <!-- 3행: 표적 추적 및 격발 상태 -->
-                <GroupBox Header="표적 추적 및 격발 상태" Margin="0,0,0,10">
-                    <Grid>
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition Width="2*"/>
-                            <!-- 왼쪽 영역 -->
-                            <ColumnDefinition Width="1*"/>
-                            <!-- 오른쪽 영역 (비상정지 버튼) -->
-                        </Grid.ColumnDefinitions>
-
-                        <!-- 왼쪽: 기존 추적/격발 상태 -->
-                        <Grid Grid.Column="0">
-                            <Grid.RowDefinitions>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                                <RowDefinition Height="Auto"/>
-                            </Grid.RowDefinitions>
-                            <Grid.ColumnDefinitions>
-                                <ColumnDefinition Width="Auto"/>
-                                <ColumnDefinition Width="*"/>
-                            </Grid.ColumnDefinitions>
-
-                            <!-- 추적 객체 ID -->
-                            <TextBlock Text="추적 객체 ID:" Grid.Row="0" Grid.Column="0" Margin="5"/>
-                            <TextBlock Text="{Binding Control.TrackedTargetId}" 
-                       Grid.Row="0" Grid.Column="1" Margin="5"/>
-
-                            <!-- 격발 가능 여부 및 버튼 -->
-                            <TextBlock Text="격발:" Grid.Row="1" Grid.Column="0" Margin="5"/>
-                            <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal" Margin="5">
-                                <Button Content="격발" Width="70" Height="25" 
-                        IsEnabled="{Binding Control.CanFire}"
-                        Command="{Binding Control.SendFireCommand}"/>
-                                <TextBlock Text="{Binding Control.FireStatusText}" 
-                           Margin="8,0,0,0" 
-                           VerticalAlignment="Center"
-                           Foreground="Gray"/>
-                            </StackPanel>
-
-                            <!-- 격발 결과 (HIT / MISS) -->
-                            <TextBlock Text="격발 결과:" Grid.Row="2" Grid.Column="0" Margin="5"/>
-                            <StackPanel Grid.Row="2" Grid.Column="1" Orientation="Horizontal" Margin="5">
-                                <Button Content="HIT" Width="60" Margin="2"
-                        Command="{Binding Control.ConfirmKillCommand}"
-                        CommandParameter="true"/>
-                                <Button Content="MISS" Width="60" Margin="2"
-                        Command="{Binding Control.ConfirmKillCommand}"
-                        CommandParameter="false"/>
-                            </StackPanel>
-                        </Grid>
-
-                        <!-- 오른쪽: 비상정지 버튼 -->
-                        <Grid Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center">
-                            <Button Content="⚠ 비상정지"
-                    Width="135" Height="90"
-                    Background="Red"
-                    Foreground="White"
-                    FontWeight="Bold"
-                    Command="{Binding EmergencyStopCommand}"
-                    BorderBrush="DarkRed"
-                    BorderThickness="2"
-                    Cursor="Hand"/>
-                        </Grid>
-                    </Grid>
-                </GroupBox>
-
-                <Separator Margin="0,5"/>
-
-                <!-- 4행: 로봇 움직임 상태 + 김발 움직임 상태 -->
-                <Grid Margin="0,0,0,10">
+            <!-- 움직임 상태 -->
+            <GroupBox Header="MOVEMENT STATUS" Grid.Row="3" Margin="0,0,0,5">
+                <Grid>
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
                         <ColumnDefinition Width="*"/>
                     </Grid.ColumnDefinitions>
 
-                    <!-- 로봇 움직임 상태 -->
-                    <GroupBox Header="로봇 움직임 상태" Grid.Column="0" Margin="0,0,5,0">
+                    <!-- 🤖 로봇 움직임 상태 -->
+                    <GroupBox Header="ROBOT" Grid.Column="0" Margin="0,0,5,0">
                         <Grid Width="90" Height="90" HorizontalAlignment="Center" VerticalAlignment="Center">
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="30"/>
@@ -250,23 +266,24 @@
                                 <ColumnDefinition Width="30"/>
                             </Grid.ColumnDefinitions>
 
-                            <!-- 위 -->
+                            <!-- ▲ 위 -->
                             <Viewbox Grid.Row="0" Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center">
                                 <Path Data="M10,0 L0,20 L20,20 Z"
-                      Fill="{Binding Control.MoveForwardColor}"
-                      RenderTransformOrigin="0.5,0.5"/>
+                          Fill="{Binding Control.MoveForwardColor}"
+                          RenderTransformOrigin="0.5,0.5"/>
                             </Viewbox>
-                      
+
                         </Grid>
                     </GroupBox>
 
                     <!-- 구분선 -->
-                    <Separator Grid.Column="1" Margin="10,0" Width="1"
-               HorizontalAlignment="Center" VerticalAlignment="Stretch"
-               Background="#444"/>
+                    <Separator Grid.Column="1"
+                   Width="1"
+                   Background="{StaticResource BorderBrushDark}"
+                   Margin="10,0"/>
 
-                    <!-- 김발 움직임 상태 -->
-                    <GroupBox Header="김발 움직임 상태" Grid.Column="2" Margin="5,0,0,0">
+                    <!-- 🎯 짐벌 움직임 상태 -->
+                    <GroupBox Header="GIMBAL" Grid.Column="2" Margin="5,0,0,0">
                         <Grid Width="90" Height="90" HorizontalAlignment="Center" VerticalAlignment="Center">
                             <Grid.RowDefinitions>
                                 <RowDefinition Height="30"/>
@@ -279,40 +296,40 @@
                                 <ColumnDefinition Width="30"/>
                             </Grid.ColumnDefinitions>
 
-                            <!-- 상 -->
+                            <!-- ▲ 위 -->
                             <Viewbox Grid.Row="0" Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center">
                                 <Path Data="M10,0 L0,20 L20,20 Z"
-                      Fill="{Binding Control.GimbalUpColor}"
-                      RenderTransformOrigin="0.5,0.5"/>
+                          Fill="{Binding Control.GimbalUpColor}"
+                          RenderTransformOrigin="0.5,0.5"/>
                             </Viewbox>
 
-                            <!-- 좌 -->
-                            <Viewbox Grid.Row="1" Grid.Column="0" HorizontalAlignment="Center" VerticalAlignment="Center">
-                                <Path Data="M10,0 L0,20 L20,20 Z"
-                      Fill="{Binding Control.GimbalLeftColor}"
-                      RenderTransformOrigin="0.5,0.5">
-                                    <Path.RenderTransform>
-                                        <RotateTransform Angle="-90"/>
-                                    </Path.RenderTransform>
-                                </Path>
-                            </Viewbox>
-
-                            <!-- 하 -->
+                            <!-- ▼ 아래 -->
                             <Viewbox Grid.Row="2" Grid.Column="1" HorizontalAlignment="Center" VerticalAlignment="Center">
                                 <Path Data="M10,0 L0,20 L20,20 Z"
-                      Fill="{Binding Control.GimbalDownColor}"
-                      RenderTransformOrigin="0.5,0.5">
+                          Fill="{Binding Control.GimbalDownColor}"
+                          RenderTransformOrigin="0.5,0.5">
                                     <Path.RenderTransform>
                                         <RotateTransform Angle="180"/>
                                     </Path.RenderTransform>
                                 </Path>
                             </Viewbox>
 
-                            <!-- 우 -->
+                            <!-- ◀ 왼쪽 -->
+                            <Viewbox Grid.Row="1" Grid.Column="0" HorizontalAlignment="Center" VerticalAlignment="Center">
+                                <Path Data="M10,0 L0,20 L20,20 Z"
+                          Fill="{Binding Control.GimbalLeftColor}"
+                          RenderTransformOrigin="0.5,0.5">
+                                    <Path.RenderTransform>
+                                        <RotateTransform Angle="-90"/>
+                                    </Path.RenderTransform>
+                                </Path>
+                            </Viewbox>
+
+                            <!-- ▶ 오른쪽 -->
                             <Viewbox Grid.Row="1" Grid.Column="2" HorizontalAlignment="Center" VerticalAlignment="Center">
                                 <Path Data="M10,0 L0,20 L20,20 Z"
-                      Fill="{Binding Control.GimbalRightColor}"
-                      RenderTransformOrigin="0.5,0.5">
+                          Fill="{Binding Control.GimbalRightColor}"
+                          RenderTransformOrigin="0.5,0.5">
                                     <Path.RenderTransform>
                                         <RotateTransform Angle="90"/>
                                     </Path.RenderTransform>
@@ -321,30 +338,21 @@
                         </Grid>
                     </GroupBox>
                 </Grid>
+            </GroupBox>
 
-                <Separator Margin="0,5"/>
 
-                <!-- 5행: 지도 표시 -->
-                <GroupBox Header="Map" Margin="0,0,0,10">
-                    <Grid>
-                        <gmap:GMapControl
-                        x:Name="MapControl"
-                        Grid.Row="0"
-                        MinHeight="300"
-                        MinZoom="2"
+            <!-- 지도 -->
+            <GroupBox Header="MAP" Grid.Row="4" Margin="0,0,0,0">
+                <gmap:GMapControl x:Name="MapControl"
+                                  Margin="5"
+                                  Zoom="{Binding Map.Zoom, Mode=OneWay}"
+                                                          MinZoom="2"
                         MaxZoom="22"
-                        Zoom="{Binding Map.Zoom, Mode=OneWay}"
-                        Position="{Binding Map.MapCenter, Mode=OneWay}"
-                        CanDragMap="True"
-                        MouseWheelZoomType="MousePositionAndCenter"
-                        MapProvider="{x:Static gmapcore:GMapProviders.BingSatelliteMap}"
-                        />
-                    </Grid>
-                </GroupBox>
-
-
-
-            </StackPanel>
-        </ScrollViewer>
+                                  Position="{Binding Map.MapCenter, Mode=OneWay}"
+                                  CanDragMap="True"
+                                  MouseWheelZoomType="MousePositionAndCenter"
+                                  MapProvider="{x:Static gmapcore:GMapProviders.BingSatelliteMap}"/>
+            </GroupBox>
+        </Grid>
     </Grid>
 </Window>

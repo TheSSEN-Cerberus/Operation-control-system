@@ -2,6 +2,7 @@
 using Operation_Control_System.Models;
 using System.Windows.Input;
 using System.Windows.Media;
+using System.ComponentModel;
 
 namespace Operation_Control_System.ViewModels
 {
@@ -41,7 +42,26 @@ namespace Operation_Control_System.ViewModels
         }
 
         public string ClassLabel { get; }
-        public Brush BoxColor { get; }
+
+        public float Confidence { get; }
+        public int Priority { get; }
+
+        private bool _isTracked;
+        public bool IsTracked
+        {
+            get => _isTracked;
+            set
+            {
+                if (SetProperty(ref _isTracked, value))
+                    UpdateColor();
+            }
+        }
+        public Brush _boxColor = Brushes.LimeGreen;
+        public Brush BoxColor
+        {
+            get => _boxColor;
+            set => SetProperty(ref _boxColor, value);
+        }
 
         public ICommand ClickCommand { get; }
         public event Action<int>? Clicked;
@@ -50,30 +70,34 @@ namespace Operation_Control_System.ViewModels
         {
             Id = model.Id;
             ClassLabel = model.Class;
+            Confidence = model.Confidence;
+            Priority = model.Priority;
             ClickCommand = new RelayCommand(() => Clicked?.Invoke(Id));
 
-            // 초기 위치 설정
-            Update(model, frameWidth, frameHeight);
+            // 초기 위치, 색상 설정
+            UpdatePos(model, frameWidth, frameHeight);
+            UpdateColor();
 
-            // 신뢰도 기반 색상
-            if (model.Confidence >= 0.8f)
-                BoxColor = Brushes.LimeGreen;
-            else if (model.Confidence >= 0.5f)
-                BoxColor = Brushes.Yellow;
-            else
-                BoxColor = Brushes.Red;
         }
 
         /// <summary>
         /// 동일 ID의 BBox 좌표만 업데이트 (매 프레임 호출)
         /// </summary>
-        public void Update(DetectedObject model, int frameWidth, int frameHeight)
+        public void UpdatePos(DetectedObject model, int frameWidth, int frameHeight)
         {
 
             Width = model.BBox[2];
             Height = model.BBox[3];
             X = model.BBox[0] - (Width / 2.0);
             Y = model.BBox[1] - (Height / 2.0);
+        }
+
+        public void UpdateColor()
+        {
+            if (IsTracked)
+                BoxColor = Brushes.Red;
+            else
+                BoxColor = Priority == 1 ? Brushes.Yellow : Brushes.LimeGreen;
         }
     }
 }

@@ -4,15 +4,16 @@ using Operation_Control_System.Models;
 using Operation_Control_System.Services;
 using System;
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.Net;
 using System.Threading.Tasks;
+using System.Timers;
+using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using System.Timers;
-
+using DateTime = System.DateTime;
 using NetworkService = Operation_Control_System.Services.NetworkService;
 using Task = System.Threading.Tasks.Task;
-using DateTime = System.DateTime;
 using Timer = System.Timers.Timer;
 
 namespace Operation_Control_System.ViewModels
@@ -22,7 +23,6 @@ namespace Operation_Control_System.ViewModels
         private readonly VideoStreamService _videoService;
         private readonly NetworkService _networkService;
         private readonly VideoRecorderService _recorder = new();
-
         private readonly ControlViewModel _controlViewModel;
 
 
@@ -46,8 +46,15 @@ namespace Operation_Control_System.ViewModels
             set => SetProperty(ref _selectedBBoxInfo, value);
         }
 
+
         private DateTime _lastBBoxTime = DateTime.MinValue;
         private readonly Timer _bboxTimeoutTimer;
+
+        private DateTime _lastFrameTime = DateTime.MinValue;
+        private readonly Timer _frameTimeoutTimer;
+
+        public ICommand TrackCommand { get; }
+        public ICommand UntrackCommand { get; }
 
         public VideoStreamViewModel(NetworkService networkService, ControlViewModel controlViewModel)
         {
@@ -57,17 +64,27 @@ namespace Operation_Control_System.ViewModels
             _videoService.FrameArrived += OnFrameArrived;
             _networkService.BBoxReceived += OnBBoxReceived;
 
+            // ✅ 버튼 명령 초기화
+            TrackCommand = new RelayCommand(OnTrack);
+            UntrackCommand = new RelayCommand(OnUntrack);
+
 
             // ✅ 타임아웃 체크 타이머 (0.5초마다 검사)
             _bboxTimeoutTimer = new Timer(500);
             _bboxTimeoutTimer.Elapsed += (_, __) => CheckBBoxTimeout();
             _bboxTimeoutTimer.Start();
+
+            // 프레임 체크 타이머
+            _frameTimeoutTimer = new Timer(1000);
+            _frameTimeoutTimer.Elapsed += (_, __) => CheckFrameTimeout();
+            _frameTimeoutTimer.Start();
         }
 
         // Gstreamer 영상 수신
         private async void OnFrameArrived(BitmapSource frame)
         {
             CurrentFrame = frame;
+            _lastFrameTime = DateTime.UtcNow;
             if (!_recorder.IsRecording)
                 await _recorder.StartAsync(frame);
 
@@ -103,8 +120,9 @@ namespace Operation_Control_System.ViewModels
                     var existing = BBoxes.FirstOrDefault(b => b.Id == model.Id);
                     if (existing != null)
                     {
-                        // 좌표만 업데이트
-                        existing.Update(model, frameWidth, frameHeight);
+                        // 좌표, 색상 업데이트
+                        existing.UpdatePos(model, frameWidth, frameHeight);
+                        existing.UpdateColor();
                     }
                     else
                     {
@@ -129,12 +147,36 @@ namespace Operation_Control_System.ViewModels
             }
         }
 
+        private void CheckFrameTimeout()
+        {
+            if (CurrentFrame == null)
+                return;
+
+            if ((DateTime.UtcNow - _lastFrameTime).TotalSeconds > 1)
+            {
+                App.Current?.Dispatcher?.Invoke(() =>
+                {
+                    CurrentFrame = null;
+                });
+            }
+        }
+
         public void OnBBoxClicked(int id)
         {
             // 수동 모드일 때만 추적 명령 전송
             if (_controlViewModel.SelectedOperationMode == "수동")
             {
                 _controlViewModel.TrackedTargetId = id;
+
+                var target = BBoxes.FirstOrDefault(x => x.Id == id);
+                if (target != null)
+                {
+                    // ✅ 클릭된 BBox의 추적 상태 업데이트
+                    target.IsTracked = true;
+
+                    System.Diagnostics.Debug.WriteLine($"[VideoStream] 🖱️ BBox clicked → ID={id}, IsTracked=True");
+                }
+
                 _ = _networkService.SendAsync(new Message<TrackTargetData>
                 {
                     Type = "track_target",
@@ -142,6 +184,54 @@ namespace Operation_Control_System.ViewModels
                 });
             }
         }
+
+        // 🔸 추적 명령
+        private async void OnTrack(object? param)
+        {
+            if (_controlViewModel.SelectedOperationMode == "수동")
+            {
+                if (param is int id)
+                {
+                    var target = BBoxes.FirstOrDefault(x => x.Id == id);
+                    if (target != null)
+                    {
+                        target.IsTracked = true;
+
+                        await _networkService.SendAsync(new Message<TrackTargetData>
+                        {
+                            Type = "track_target",
+                            Data = new TrackTargetData { TargetId = id }
+                        });
+
+                        System.Diagnostics.Debug.WriteLine($"[VideoStream] 🎯 Track start → ID={id}");
+                    }
+                }
+            }
+        }
+
+        // 🔸 추적 해제
+        private async void OnUntrack(object? param)
+        {
+            if (param is int id)
+            {
+                var target = BBoxes.FirstOrDefault(x => x.Id == id);
+                if (target != null)
+                {
+                    target.IsTracked = false;
+
+                    await _networkService.SendAsync(new Message<TrackReleaseData>
+                    {
+                        Type = "track_release",
+                        Data = new TrackReleaseData { TargetId= id }
+                    });
+
+                    System.Diagnostics.Debug.WriteLine($"[VideoStream] 🟢 Track released → ID={id}");
+                }
+            }
+        }
+
+         //🔸 탐지 제거
+
         public async Task StartAsync(int port = 5600)
         {
             lock (_lock)
@@ -172,6 +262,8 @@ namespace Operation_Control_System.ViewModels
         {
             _videoService.Stop();
             _recorder.Stop();
+            _bboxTimeoutTimer.Close();
+            _frameTimeoutTimer.Close();
         }
         public void Dispose()
         {

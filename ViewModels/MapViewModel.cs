@@ -60,7 +60,7 @@ namespace Operation_Control_System.ViewModels
         {
             _networkService = networkService;
             SetStartPositionCommand = new RelayCommand(OnSetStartPosition);
-            Debug.WriteLine(Zoom);
+            InitializeMapSettings();
         }
 
         private void OnSetStartPosition()
@@ -70,6 +70,14 @@ namespace Operation_Control_System.ViewModels
             CurrentLongitude = StartLongitude;
             Zoom = 19;
             Debug.WriteLine($"[Map] Set Center → {StartLatitude}, {StartLongitude}");
+        }
+
+        private void InitializeMapSettings()
+        {
+            // (1) 지도 공급자 설정
+            GMaps.Instance.Mode = AccessMode.CacheOnly;   // 온라인 모드(캐시 병행)
+            //GMap.NET.MapProviders.GMapProvider.WebProxy = null;
+            //GMap.NET.MapProviders.GMapProvider.UserAgent = "OperationControlSystem/1.0";
         }
 
     }

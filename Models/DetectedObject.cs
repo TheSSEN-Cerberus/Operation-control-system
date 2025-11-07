@@ -15,5 +15,8 @@ namespace Operation_Control_System.Models
 
         [JsonPropertyName("bbox")]
         public int[] BBox { get; set; } = new int[4]; // x, y, w, h -> x,y : 중앙좌표, 가로, 세로
+
+        [JsonPropertyName("priority")]
+        public int Priority { get; set; } = 99; // 기본값 낮음
     }
 }
