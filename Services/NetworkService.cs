@@ -120,7 +120,6 @@ namespace Operation_Control_System.Services
                             _lastHeartbeat = DateTime.UtcNow;
                             StatusReceived?.Invoke(statusMsg.Data);
                             ConnectionChanged?.Invoke(true);
-                            Console.WriteLine($"[Network] Parsed StatusData RSSI={statusMsg.Data.NetworkRssi}");
                         }
                         break;
 
