@@ -55,7 +55,6 @@ namespace Operation_Control_System.ViewModels
 
         public ICommand TrackCommand { get; }
         public ICommand UntrackCommand { get; }
-        public ICommand RemoveDetectionCommand { get; }
 
         public VideoStreamViewModel(NetworkService networkService, ControlViewModel controlViewModel)
         {
@@ -68,7 +67,6 @@ namespace Operation_Control_System.ViewModels
             // ✅ 버튼 명령 초기화
             TrackCommand = new RelayCommand(OnTrack);
             UntrackCommand = new RelayCommand(OnUntrack);
-            RemoveDetectionCommand = new RelayCommand(OnRemoveDetection);
 
 
             // ✅ 타임아웃 체크 타이머 (0.5초마다 검사)
@@ -76,7 +74,8 @@ namespace Operation_Control_System.ViewModels
             _bboxTimeoutTimer.Elapsed += (_, __) => CheckBBoxTimeout();
             _bboxTimeoutTimer.Start();
 
-            _frameTimeoutTimer = new System.Timers.Timer(1000);
+            // 프레임 체크 타이머
+            _frameTimeoutTimer = new Timer(1000);
             _frameTimeoutTimer.Elapsed += (_, __) => CheckFrameTimeout();
             _frameTimeoutTimer.Start();
         }
@@ -168,6 +167,16 @@ namespace Operation_Control_System.ViewModels
             if (_controlViewModel.SelectedOperationMode == "수동")
             {
                 _controlViewModel.TrackedTargetId = id;
+
+                var target = BBoxes.FirstOrDefault(x => x.Id == id);
+                if (target != null)
+                {
+                    // ✅ 클릭된 BBox의 추적 상태 업데이트
+                    target.IsTracked = true;
+
+                    System.Diagnostics.Debug.WriteLine($"[VideoStream] 🖱️ BBox clicked → ID={id}, IsTracked=True");
+                }
+
                 _ = _networkService.SendAsync(new Message<TrackTargetData>
                 {
                     Type = "track_target",
@@ -179,20 +188,23 @@ namespace Operation_Control_System.ViewModels
         // 🔸 추적 명령
         private async void OnTrack(object? param)
         {
-            if (param is int id)
+            if (_controlViewModel.SelectedOperationMode == "수동")
             {
-                var target = BBoxes.FirstOrDefault(x => x.Id == id);
-                if (target != null)
+                if (param is int id)
                 {
-                    target.IsTracked = true;
-
-                    await _networkService.SendAsync(new Message<TrackTargetData>
+                    var target = BBoxes.FirstOrDefault(x => x.Id == id);
+                    if (target != null)
                     {
-                        Type = "track_target",
-                        Data = new TrackTargetData { TargetId=id }  
-                    });
+                        target.IsTracked = true;
 
-                    System.Diagnostics.Debug.WriteLine($"[VideoStream] 🎯 Track start → ID={id}");
+                        await _networkService.SendAsync(new Message<TrackTargetData>
+                        {
+                            Type = "track_target",
+                            Data = new TrackTargetData { TargetId = id }
+                        });
+
+                        System.Diagnostics.Debug.WriteLine($"[VideoStream] 🎯 Track start → ID={id}");
+                    }
                 }
             }
         }
@@ -219,19 +231,7 @@ namespace Operation_Control_System.ViewModels
         }
 
          //🔸 탐지 제거
-        private void OnRemoveDetection(object? param)
-        {
-            Debug.WriteLine("remove detection");
-            //if (param is int id)
-            //{
-            //    var target = BBoxes.FirstOrDefault(x => x.Id == id);
-            //    if (target != null)
-            //    {
-            //        BBoxes.Remove(target);
-            //        System.Diagnostics.Debug.WriteLine($"[VideoStream] ❌ Detection removed → ID={id}");
-            //    }
-            //}
-        }
+
         public async Task StartAsync(int port = 5600)
         {
             lock (_lock)

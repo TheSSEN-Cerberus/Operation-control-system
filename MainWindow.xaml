@@ -75,7 +75,10 @@
                             <Border BorderBrush="{Binding BoxColor}" BorderThickness="2"
                                     Width="{Binding Width}" Height="{Binding Height}"
                                     Background="#20FF0000">
-                                <StackPanel>
+                                    <Border.InputBindings>
+                                        <MouseBinding Gesture="LeftClick" Command="{Binding ClickCommand}" />
+                                    </Border.InputBindings>
+                                    <StackPanel>
                                     <TextBlock Text="{Binding Id}" Foreground="{StaticResource HUDYellow}" FontWeight="Bold"/>
                                     <TextBlock Text="{Binding ClassLabel}" Foreground="White" FontSize="10"/>
                                 </StackPanel>
@@ -119,12 +122,12 @@
                                                 <Button Content="추적"
                                         Padding="6,2"
                                         FontSize="12"
-                                        Command="{Binding VideoStream.TrackCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                        Command="{Binding DataContext.VideoStream.TrackCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                         CommandParameter="{Binding Id}"/>
                                                 <Button Content="추적해제"
                                         Padding="6,2"
                                         FontSize="12"
-                                        Command="{Binding VideoStream.UntrackCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                        Command="{Binding DataContext.VideoStream.UntrackCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                         CommandParameter="{Binding Id}"/>
                                             </StackPanel>
                                         </DataTemplate>

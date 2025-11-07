@@ -27,7 +27,6 @@ namespace Operation_Control_System.ViewModels
             Control = new ControlViewModel(_networkService, _bluetoothService);
             VideoStream = new VideoStreamViewModel(_networkService, Control);
             Map = new MapViewModel(_networkService);
-
             EmergencyStopCommand = new RelayCommand(async _ => await ExecuteEmergencyStop());
         }
 
@@ -72,6 +71,12 @@ namespace Operation_Control_System.ViewModels
             Control.CanFire = false;
             Control.LastFireHit = null;
 
+            // 임무장비 초기화
+            if (Control.MovingState == 1)
+            {
+                Control.ToggleMoving();
+            }
+
             // 색상 초기화
             Control.MoveForwardColor = System.Windows.Media.Brushes.Gray;
             Control.MoveStopColor = System.Windows.Media.Brushes.Gray;
@@ -84,6 +89,8 @@ namespace Operation_Control_System.ViewModels
             VideoStream.BBoxes.Clear();
             VideoStream.SelectedBBoxInfo = "객체 정보 없음";
             Debug.WriteLine("[System] ✅ State Reset Done (Network kept alive)");
+
+
         }
 
         public void Dispose()

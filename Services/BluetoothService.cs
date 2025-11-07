@@ -132,7 +132,7 @@ namespace Operation_Control_System.Services
                 }
 
                 await Task.Delay(1000);
-                var services = await _device.GetGattServicesAsync(BluetoothCacheMode.Uncached);
+                var services = await _device?.GetGattServicesAsync(BluetoothCacheMode.Uncached);
                 foreach (var service in services.Services)
                 {
                     var characteristics = await service.GetCharacteristicsAsync();

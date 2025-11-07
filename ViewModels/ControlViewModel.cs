@@ -374,7 +374,7 @@ namespace Operation_Control_System.ViewModels
         /// <summary>
         /// 로봇 이동 상태를 토글하고 명령을 전송합니다.
         /// </summary>
-        private void ToggleMoving()
+        public void ToggleMoving()
         {
             MovingState = (MovingState == 0) ? 1 : 0; // 0 ↔ 1 토글
 
