@@ -130,7 +130,7 @@ namespace Operation_Control_System.ViewModels
             {
                 _shared.Heading = 360 + data.Yaw;
             }
-            if (_headingInitialized)
+            if (!_headingInitialized)
             {
                 _headingInitialized = true;
                 _robotHeading = _shared.Heading;

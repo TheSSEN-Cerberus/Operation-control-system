@@ -389,10 +389,11 @@ namespace Operation_Control_System.ViewModels
             {
                 // 🔹 전진 시작
                 MovingState = 1;
+                _lastUpdateTime = DateTime.Now;
                 _moveTimer.Start();
 
                 MoveForwardColor = Brushes.LimeGreen;
-
+                
                 // BLE 명령
                 if (_bluetoothService.IsConnected)
                     _ = _bluetoothService.SendCommandAsync(_bluetoothService.MoveCommand);
