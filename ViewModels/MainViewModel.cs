@@ -102,6 +102,7 @@ namespace Operation_Control_System.ViewModels
             VideoStream?.Dispose();
             Network?.Dispose();
             Control?.Dispose();
+            Shared.ResetAll();
             //Map.Dispose();
         }
     }

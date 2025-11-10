@@ -63,8 +63,8 @@ namespace Operation_Control_System.ViewModels
         }
 
         private GMapMarker? _robotMarker;
-        private GMapMarker? _targetMarker;
         private GMapPolygon? _fovSector;
+        private readonly Dictionary<int, GMapMarker> _targetMarkers = new();
 
 
         private double _robotHeading;
@@ -145,10 +145,50 @@ namespace Operation_Control_System.ViewModels
         private void OnFireReadyReceived(FireReadyData data)
         {
             if (!data.IsReady) return;
-            Application.Current?.Dispatcher?.BeginInvoke(() => UpdateTargetMarker(data.Distance));
+            // BBoxes에서 priority 가져오기
+            var bbox = _shared.BBoxes.FirstOrDefault(b => b.Id == data.TargetId);
+            int priority = bbox?.Priority ?? 0;
+            double heading = _shared.Heading;
+
+            var (lat, lon) = CalculateTargetPosition(Latitude, Longitude, heading, data.Distance);
+            UpdateTargetMarker(lat, lon, data.TargetId, priority);
+
         }
 
         // --- 마커 업데이트 ---
+
+        public void UpdateTargetMarker(double lat, double lon, int id, int priority = 0)
+        {
+            var point = new PointLatLng(lat, lon);
+
+            // 기존 마커 있으면 갱신
+            if (_targetMarkers.TryGetValue(id, out var existing))
+            {
+                _mapControl?.Markers.Remove(existing);
+                _targetMarkers.Remove(id);
+            }
+
+            Brush borderColor = (priority == 1) ? Brushes.Red : Brushes.LimeGreen;
+
+            var marker = new GMapMarker(point)
+            {
+                Shape = new Ellipse
+                {
+                    Width = 12,
+                    Height = 12,
+                    Stroke = borderColor,
+                    StrokeThickness = 2,
+                    Fill = Brushes.Yellow
+                },
+                Offset = new System.Windows.Point(-6, -6),
+                ZIndex = 2
+            };
+
+            _targetMarkers[id] = marker;
+            _mapControl?.Markers.Add(marker);
+
+            Debug.WriteLine($"[Map] 🎯 Target {id} marker added at {lat:F6}, {lon:F6} (priority={priority})");
+        }
         private void UpdateHeadingMarker()
         {
             if (_mapControl == null) return;
@@ -226,30 +266,6 @@ namespace Operation_Control_System.ViewModels
             }
         }
 
-        private void UpdateTargetMarker(double distance)
-        {
-            if (_mapControl == null) return;
-
-            var targetPoint = CalculateTargetPoint(MapCenter, _shared.Heading, distance);
-
-            if (_targetMarker == null)
-            {
-                _targetMarker = new GMapMarker(targetPoint)
-                {
-                    Shape = new Ellipse
-                    {
-                        Width = 10,
-                        Height = 10,
-                        Stroke = Brushes.Red,
-                        StrokeThickness = 2,
-                        Fill = Brushes.Transparent
-                    }
-                };
-                _mapControl.Markers.Add(_targetMarker);
-            }
-
-            _targetMarker.Position = targetPoint;
-        }
 
         private PointLatLng CalculateTargetPoint(PointLatLng origin, double headingDeg, double distanceMeters)
         {

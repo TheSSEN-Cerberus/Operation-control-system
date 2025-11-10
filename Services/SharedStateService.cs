@@ -37,5 +37,11 @@ namespace Operation_Control_System.Services
         }
 
         public event Action<double>? HeadingChanged;
+
+
+        public void ResetAll()
+        {
+            BBoxes.Clear();
+        }
     }
 }

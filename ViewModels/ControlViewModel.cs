@@ -416,7 +416,7 @@ namespace Operation_Control_System.ViewModels
 
         private void OnMoveTick(object? sender, EventArgs e)
         {
-            if (MovingState == 1)
+            if (MovingState == 1 && _bluetoothService.IsConnected)
             {
                 var now = DateTime.Now;
                 double elapsed = (now - _lastUpdateTime).TotalSeconds;

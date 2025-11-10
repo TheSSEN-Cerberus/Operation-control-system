@@ -121,6 +121,7 @@ namespace Operation_Control_System.ViewModels
             if (CurrentFrame == null || bboxData.Objects == null)
                 return;
 
+
             _lastBBoxTime = DateTime.UtcNow;
             int frameWidth = CurrentFrame.PixelWidth;
             int frameHeight = CurrentFrame.PixelHeight;

@@ -56,9 +56,9 @@
                     </StackPanel>
                 </Grid>
                 </Viewbox>
-                
-                
-                <ItemsControl ItemsSource="{Binding VideoStream.BBoxes}">
+
+
+                    <ItemsControl ItemsSource="{Binding Shared.BBoxes}">
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
                             <Canvas/>
@@ -91,7 +91,7 @@
                 <GroupBox Grid.Row="1" Header="TARGET INFO">
 
                     <ScrollViewer VerticalScrollBarVisibility="Auto">
-                        <DataGrid ItemsSource="{Binding VideoStream.BBoxes}"
+                        <DataGrid ItemsSource="{Binding Shared.BBoxes}"
                           AutoGenerateColumns="False"
                           CanUserAddRows="False"
                           IsReadOnly="True"
