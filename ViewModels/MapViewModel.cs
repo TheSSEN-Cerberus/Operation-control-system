@@ -27,14 +27,14 @@ namespace Operation_Control_System.ViewModels
         public double Latitude
         {
             get => _latitude;
-            set => SetProperty(ref _latitude, value);   // ✅ 이게 핵심!
+            set => SetProperty(ref _latitude, value);
         }
 
         private double _longitude;
         public double Longitude
         {
             get => _longitude;
-            set => SetProperty(ref _longitude, value);  // ✅ 이게 핵심!
+            set => SetProperty(ref _longitude, value);
         }
 
 
@@ -107,7 +107,7 @@ namespace Operation_Control_System.ViewModels
             double distanceM = distanceCm / 100.0;
             const double EarthRadius = 6378137.0; // m
 
-            double headingRad = _heading * Math.PI / 180.0;
+            double headingRad = _robotHeading * Math.PI / 180.0;
             double dLat = (distanceM * Math.Cos(headingRad)) / EarthRadius;
             double dLon = (distanceM * Math.Sin(headingRad)) / (EarthRadius * Math.Cos(Latitude * Math.PI / 180.0));
 
@@ -267,6 +267,22 @@ namespace Operation_Control_System.ViewModels
                                             Math.Cos(distanceMeters / EarthRadius) - Math.Sin(lat1) * Math.Sin(lat2));
 
             return new PointLatLng(lat2 * 180.0 / Math.PI, lon2 * 180.0 / Math.PI);
+        }
+
+        public (double lat, double lon) CalculateTargetPosition(double startLat, double startLon, double headingDeg, double distanceMeters)
+        {
+            const double EarthRadius = 6378137.0; // meters
+            double bearing = headingDeg * Math.PI / 180.0;
+            double lat1 = startLat * Math.PI / 180.0;
+            double lon1 = startLon * Math.PI / 180.0;
+
+            double lat2 = Math.Asin(Math.Sin(lat1) * Math.Cos(distanceMeters / EarthRadius) +
+                                    Math.Cos(lat1) * Math.Sin(distanceMeters / EarthRadius) * Math.Cos(bearing));
+
+            double lon2 = lon1 + Math.Atan2(Math.Sin(bearing) * Math.Sin(distanceMeters / EarthRadius) * Math.Cos(lat1),
+                                            Math.Cos(distanceMeters / EarthRadius) - Math.Sin(lat1) * Math.Sin(lat2));
+
+            return (lat2 * 180.0 / Math.PI, lon2 * 180.0 / Math.PI);
         }
 
         private void OnSetStartPosition()

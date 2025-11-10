@@ -26,7 +26,7 @@ namespace Operation_Control_System.ViewModels
             Map = new MapViewModel(_networkService);
             Network = new NetworkViewModel(_networkService, _bluetoothService);
             Control = new ControlViewModel(_networkService, _bluetoothService, Map);
-            VideoStream = new VideoStreamViewModel(_networkService, Control);
+            VideoStream = new VideoStreamViewModel(_networkService, Control, Map);
             EmergencyStopCommand = new RelayCommand(async _ => await ExecuteEmergencyStop());
         }
 

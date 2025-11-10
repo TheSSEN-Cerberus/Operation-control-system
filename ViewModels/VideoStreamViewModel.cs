@@ -24,6 +24,7 @@ namespace Operation_Control_System.ViewModels
         private readonly NetworkService _networkService;
         private readonly VideoRecorderService _recorder = new();
         private readonly ControlViewModel _controlViewModel;
+        private readonly MapViewModel _mapViewModel;
 
 
         public ObservableCollection<BBoxViewModel> BBoxes { get; } = new();
@@ -56,13 +57,15 @@ namespace Operation_Control_System.ViewModels
         public ICommand TrackCommand { get; }
         public ICommand UntrackCommand { get; }
 
-        public VideoStreamViewModel(NetworkService networkService, ControlViewModel controlViewModel)
+        public VideoStreamViewModel(NetworkService networkService, ControlViewModel controlViewModel, MapViewModel mapViewModel)
         {
+            _mapViewModel = mapViewModel;
             _controlViewModel = controlViewModel;
             _networkService = networkService;
             _videoService = new VideoStreamService();
             _videoService.FrameArrived += OnFrameArrived;
             _networkService.BBoxReceived += OnBBoxReceived;
+            _networkService.FireReadyReceived += OnFireReadyReceived;
 
             // ✅ 버튼 명령 초기화
             TrackCommand = new RelayCommand(OnTrack);
@@ -78,6 +81,25 @@ namespace Operation_Control_System.ViewModels
             _frameTimeoutTimer = new Timer(1000);
             _frameTimeoutTimer.Elapsed += (_, __) => CheckFrameTimeout();
             _frameTimeoutTimer.Start();
+        }
+
+        // fire_ready 수신 시 타깃 위치 계산
+        private void OnFireReadyReceived(FireReadyData data)
+        {
+            if (data == null || data.TargetId == 0) return;
+            if (!_mapViewModel.IsSet) return;
+
+            var targetBox = BBoxes.FirstOrDefault(b => b.Id == data.TargetId);
+            if (targetBox == null) return;
+
+            double heading = _mapViewModel.Heading; // ControlViewModel에 저장된 heading 값
+            double distance = data.Distance; // 단위: m
+            var (lat, lon) = _mapViewModel.CalculateTargetPosition(_mapViewModel.Latitude, _mapViewModel.Longitude, heading, distance);
+
+            targetBox.TargetLat = lat;
+            targetBox.TargetLon = lon;
+
+            Debug.WriteLine($"[FireReady] Target {data.TargetId} 위치: {lat:F6}, {lon:F6}");
         }
 
         // Gstreamer 영상 수신

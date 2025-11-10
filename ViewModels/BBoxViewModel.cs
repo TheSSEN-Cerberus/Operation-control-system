@@ -63,6 +63,20 @@ namespace Operation_Control_System.ViewModels
             set => SetProperty(ref _boxColor, value);
         }
 
+        private double? _targetLat;
+        public double? TargetLat
+        {
+            get => _targetLat;
+            set => SetProperty(ref _targetLat, value);
+        }
+
+        private double? _targetLon;
+        public double? TargetLon
+        {
+            get => _targetLon;
+            set => SetProperty(ref _targetLon, value);
+        }
+
         public ICommand ClickCommand { get; }
         public event Action<int>? Clicked;
 

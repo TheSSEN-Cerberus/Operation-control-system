@@ -22,8 +22,6 @@ namespace Operation_Control_System.ViewModels
 
         private readonly DispatcherTimer _moveTimer;
         private DateTime _lastUpdateTime;
-        private DateTime? _startCmdTime = null;
-        private DateTime? _stopCmdTime = null;
         private const double RobotSpeedCmPerSec = 54.3; // 이동속도 [cm/s]
 
 
@@ -391,8 +389,6 @@ namespace Operation_Control_System.ViewModels
             {
                 // 🔹 전진 시작
                 MovingState = 1;
-                _startCmdTime = DateTime.Now;
-                _lastUpdateTime = DateTime.Now;
                 _moveTimer.Start();
 
                 MoveForwardColor = Brushes.LimeGreen;
@@ -405,7 +401,6 @@ namespace Operation_Control_System.ViewModels
             {
                 // 🔹 정지
                 MovingState = 0;
-                _stopCmdTime = DateTime.Now;
                 _moveTimer.Stop();
 
                 MoveForwardColor = Brushes.Gray;
@@ -432,26 +427,6 @@ namespace Operation_Control_System.ViewModels
             }
         }
 
-        /// <summary>
-        /// 로봇 이동 명령을 비동기적으로 전송합니다.
-        /// </summary>
-        /// <param name="moving">이동 상태 (0: 정지, 1: 전진)</param>
-        /// <returns>비동기 작업</returns>
-        private async Task SendRobotMovingCommandAsync(int moving)
-        {
-            try
-            {
-                await _networkService.SendAsync(new Message<RobotMovingData>
-                {
-                    Type = "robot_moving",
-                    Data = new RobotMovingData { Moving = moving }
-                });
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"[Control] Robot moving send error: {ex.Message}");
-            }
-        }
 
         /// <summary>
         /// 김발 제어 방향 키 입력을 처리하고 증분 명령을 전송합니다.
@@ -554,6 +529,7 @@ namespace Operation_Control_System.ViewModels
             }
             try
             {
+                CanFire = false;
                 await _networkService.SendAsync(new Message<FireCommandData>
                 {
                     Type = "fire_command",
@@ -562,10 +538,16 @@ namespace Operation_Control_System.ViewModels
                         Trigger = true // 격발 트리거
                     }
                 });
+                await Task.Delay(1000);
             }
             catch (Exception ex)
             {
                 Debug.WriteLine($"[Control] Fire send error: {ex.Message}");
+            }
+            finally
+            {
+                // 🔸 1초 후 다시 상태 갱신
+                UpdateCanFire();
             }
         }
 
