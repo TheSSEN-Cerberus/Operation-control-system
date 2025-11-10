@@ -23,10 +23,10 @@ namespace Operation_Control_System.ViewModels
             _networkService = new NetworkService();
             _bluetoothService = new BluetoothService();
 
-            Network = new NetworkViewModel(_networkService, _bluetoothService);
-            Control = new ControlViewModel(_networkService, _bluetoothService);
-            VideoStream = new VideoStreamViewModel(_networkService, Control);
             Map = new MapViewModel(_networkService);
+            Network = new NetworkViewModel(_networkService, _bluetoothService);
+            Control = new ControlViewModel(_networkService, _bluetoothService, Map);
+            VideoStream = new VideoStreamViewModel(_networkService, Control);
             EmergencyStopCommand = new RelayCommand(async _ => await ExecuteEmergencyStop());
         }
 
@@ -79,7 +79,6 @@ namespace Operation_Control_System.ViewModels
 
             // 색상 초기화
             Control.MoveForwardColor = System.Windows.Media.Brushes.Gray;
-            Control.MoveStopColor = System.Windows.Media.Brushes.Gray;
             Control.GimbalUpColor = System.Windows.Media.Brushes.Gray;
             Control.GimbalDownColor = System.Windows.Media.Brushes.Gray;
             Control.GimbalLeftColor = System.Windows.Media.Brushes.Gray;

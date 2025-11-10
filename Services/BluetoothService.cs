@@ -30,10 +30,6 @@ namespace Operation_Control_System.Services
 
         private DateTime _lastCommandTime = DateTime.MinValue;
 
-        //public bool IsConnected =>
-        //    _device?.ConnectionStatus == BluetoothConnectionStatus.Connected &&
-        //    _commandCharacteristic != null;
-
         public bool IsConnected => _commandCharacteristic != null;
 
         // ✅ 연결 상태 변경 이벤트
@@ -166,6 +162,8 @@ namespace Operation_Control_System.Services
                 ConnectionChanged?.Invoke(false);
                 return;
             }
+
+
 
             try
             {

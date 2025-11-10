@@ -12,12 +12,32 @@ namespace Operation_Control_System.ViewModels
 {
     public class MapViewModel : BaseViewModel
     {
+        private bool _isSet;
+        public bool IsSet
+        {
+            get => _isSet;
+            set => SetProperty(ref _isSet, value);
+        }
+
         private readonly NetworkService _networkService;
         private GMapControl? _mapControl;
 
         // --- 기본 위치 / 상태 ---
-        public double StartLatitude { get; set; } = 37.4807667;
-        public double StartLongitude { get; set; } = 126.8778012;
+        private double _latitude;
+        public double Latitude
+        {
+            get => _latitude;
+            set => SetProperty(ref _latitude, value);   // ✅ 이게 핵심!
+        }
+
+        private double _longitude;
+        public double Longitude
+        {
+            get => _longitude;
+            set => SetProperty(ref _longitude, value);  // ✅ 이게 핵심!
+        }
+
+
 
         private PointLatLng _mapCenter;
         public PointLatLng MapCenter
@@ -52,15 +72,20 @@ namespace Operation_Control_System.ViewModels
             set => SetProperty(ref _heading, value);
         }
 
+        private double _robotHeading;
+        private bool _headingInitialized = false;
+
         public RelayCommand SetStartPositionCommand { get; }
 
         public MapViewModel(NetworkService networkService)
         {
+            Latitude = 37.4807667;
+            Longitude = 126.8778012;
             _networkService = networkService;
             _networkService.StatusReceived += OnStatusReceived;
             _networkService.FireReadyReceived += OnFireReadyReceived;
 
-            MapCenter = new PointLatLng(StartLatitude, StartLongitude);
+            MapCenter = new PointLatLng(Latitude, Longitude);
             SetStartPositionCommand = new RelayCommand(OnSetStartPosition);
         }
 
@@ -77,6 +102,22 @@ namespace Operation_Control_System.ViewModels
         }
 
 
+        public void UpdateRobotPosition(double distanceCm)
+        {
+            double distanceM = distanceCm / 100.0;
+            const double EarthRadius = 6378137.0; // m
+
+            double headingRad = _heading * Math.PI / 180.0;
+            double dLat = (distanceM * Math.Cos(headingRad)) / EarthRadius;
+            double dLon = (distanceM * Math.Sin(headingRad)) / (EarthRadius * Math.Cos(Latitude * Math.PI / 180.0));
+
+            Latitude += dLat * 180.0 / Math.PI;
+            Longitude += dLon * 180.0 / Math.PI;
+
+            MapCenter = new PointLatLng(Latitude, Longitude);
+            Debug.WriteLine($"[Map] 위치 갱신 → {Latitude:F6}, {Longitude:F6}");
+        }
+
         private void UpdateMapCenter()
         {
             if (_mapControl != null)
@@ -91,6 +132,11 @@ namespace Operation_Control_System.ViewModels
             else
             {
                 Heading = 360 + data.Yaw;
+            }
+            if (_headingInitialized)
+            {
+                _headingInitialized = true;
+                _robotHeading = Heading;
             }
 
             Application.Current?.Dispatcher?.BeginInvoke(() =>
@@ -195,9 +241,9 @@ namespace Operation_Control_System.ViewModels
                 {
                     Shape = new Ellipse
                     {
-                        Width = 12,
-                        Height = 12,
-                        Stroke = Brushes.Yellow,
+                        Width = 10,
+                        Height = 10,
+                        Stroke = Brushes.Red,
                         StrokeThickness = 2,
                         Fill = Brushes.Transparent
                     }
@@ -225,8 +271,9 @@ namespace Operation_Control_System.ViewModels
 
         private void OnSetStartPosition()
         {
-            MapCenter = new PointLatLng(StartLatitude, StartLongitude);
+            MapCenter = new PointLatLng(Latitude, Longitude);
             Zoom = 19;
+            IsSet = true;
         }
     }
 }
