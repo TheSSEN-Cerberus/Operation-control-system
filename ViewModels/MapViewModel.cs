@@ -19,6 +19,7 @@ namespace Operation_Control_System.ViewModels
             set => SetProperty(ref _isSet, value);
         }
 
+        private readonly SharedStateService _shared;
         private readonly NetworkService _networkService;
         private GMapControl? _mapControl;
 
@@ -65,22 +66,18 @@ namespace Operation_Control_System.ViewModels
         private GMapMarker? _targetMarker;
         private GMapPolygon? _fovSector;
 
-        private double _heading;
-        public double Heading
-        {
-            get => _heading;
-            set => SetProperty(ref _heading, value);
-        }
 
         private double _robotHeading;
         private bool _headingInitialized = false;
 
         public RelayCommand SetStartPositionCommand { get; }
 
-        public MapViewModel(NetworkService networkService)
+        public MapViewModel(NetworkService networkService, SharedStateService shared)
         {
             Latitude = 37.4807667;
             Longitude = 126.8778012;
+
+            _shared = shared;
             _networkService = networkService;
             _networkService.StatusReceived += OnStatusReceived;
             _networkService.FireReadyReceived += OnFireReadyReceived;
@@ -128,15 +125,15 @@ namespace Operation_Control_System.ViewModels
         {
             Debug.WriteLine(data.Yaw);
             if(data.Yaw >= 0)
-                Heading = data.Yaw;
+                _shared.Heading = data.Yaw;
             else
             {
-                Heading = 360 + data.Yaw;
+                _shared.Heading = 360 + data.Yaw;
             }
             if (_headingInitialized)
             {
                 _headingInitialized = true;
-                _robotHeading = Heading;
+                _robotHeading = _shared.Heading;
             }
 
             Application.Current?.Dispatcher?.BeginInvoke(() =>
@@ -185,8 +182,8 @@ namespace Operation_Control_System.ViewModels
             const double rangeMeters = 80.0; // 부채꼴 반경 (m)
             const int steps = 24;            // 곡선 해상도
 
-            double startAngle = Heading - fovHalf;
-            double endAngle = Heading + fovHalf;
+            double startAngle = _shared.Heading - fovHalf;
+            double endAngle = _shared.Heading + fovHalf;
 
             // 중심점
             var center = _robotMarker.Position;
@@ -233,7 +230,7 @@ namespace Operation_Control_System.ViewModels
         {
             if (_mapControl == null) return;
 
-            var targetPoint = CalculateTargetPoint(MapCenter, Heading, distance);
+            var targetPoint = CalculateTargetPoint(MapCenter, _shared.Heading, distance);
 
             if (_targetMarker == null)
             {

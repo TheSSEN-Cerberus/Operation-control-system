@@ -20,6 +20,7 @@ namespace Operation_Control_System.ViewModels
 {
     public class VideoStreamViewModel : BaseViewModel
     {
+        private readonly SharedStateService _shared;
         private readonly VideoStreamService _videoService;
         private readonly NetworkService _networkService;
         private readonly VideoRecorderService _recorder = new();
@@ -27,7 +28,6 @@ namespace Operation_Control_System.ViewModels
         private readonly MapViewModel _mapViewModel;
 
 
-        public ObservableCollection<BBoxViewModel> BBoxes { get; } = new();
 
         private readonly object _lock = new();
         private bool _started = false;
@@ -57,8 +57,9 @@ namespace Operation_Control_System.ViewModels
         public ICommand TrackCommand { get; }
         public ICommand UntrackCommand { get; }
 
-        public VideoStreamViewModel(NetworkService networkService, ControlViewModel controlViewModel, MapViewModel mapViewModel)
+        public VideoStreamViewModel(NetworkService networkService, ControlViewModel controlViewModel, MapViewModel mapViewModel, SharedStateService shared)
         {
+            _shared = shared;
             _mapViewModel = mapViewModel;
             _controlViewModel = controlViewModel;
             _networkService = networkService;
@@ -89,10 +90,10 @@ namespace Operation_Control_System.ViewModels
             if (data == null || data.TargetId == 0) return;
             if (!_mapViewModel.IsSet) return;
 
-            var targetBox = BBoxes.FirstOrDefault(b => b.Id == data.TargetId);
+            var targetBox = _shared.BBoxes.FirstOrDefault(b => b.Id == data.TargetId);
             if (targetBox == null) return;
 
-            double heading = _mapViewModel.Heading; // ControlViewModel에 저장된 heading 값
+            double heading = _shared.Heading; // ControlViewModel에 저장된 heading 값
             double distance = data.Distance; // 단위: m
             var (lat, lon) = _mapViewModel.CalculateTargetPosition(_mapViewModel.Latitude, _mapViewModel.Longitude, heading, distance);
 
@@ -110,7 +111,7 @@ namespace Operation_Control_System.ViewModels
             if (!_recorder.IsRecording)
                 await _recorder.StartAsync(frame);
 
-            await _recorder.PushFrameAsync(frame, BBoxes);
+            await _recorder.PushFrameAsync(frame, _shared.BBoxes);
         }
 
         // BBox 데이터 수신
@@ -130,16 +131,16 @@ namespace Operation_Control_System.ViewModels
                 var newIds = bboxData.Objects.Select(o => o.Id).ToHashSet();
 
                 // ② 기존 중, 새 데이터에 없는 ID는 제거
-                for (int i = BBoxes.Count - 1; i >= 0; i--)
+                for (int i = _shared.BBoxes.Count - 1; i >= 0; i--)
                 {
-                    if (!newIds.Contains(BBoxes[i].Id))
-                        BBoxes.RemoveAt(i);
+                    if (!newIds.Contains(_shared.BBoxes[i].Id))
+                        _shared.BBoxes.RemoveAt(i);
                 }
 
                 // ③ 새로 들어온/기존 객체 갱신
                 foreach (var model in bboxData.Objects)
                 {
-                    var existing = BBoxes.FirstOrDefault(b => b.Id == model.Id);
+                    var existing = _shared.BBoxes.FirstOrDefault(b => b.Id == model.Id);
                     if (existing != null)
                     {
                         // 좌표, 색상 업데이트
@@ -151,12 +152,12 @@ namespace Operation_Control_System.ViewModels
                         var bboxVm = new BBoxViewModel(model, frameWidth, frameHeight);
                         bboxVm.Clicked += OnBBoxClicked;
                         // 새 객체 추가
-                        BBoxes.Add(bboxVm);
+                        _shared.BBoxes.Add(bboxVm);
                     }
                 }
 
                 // ④ 선택된 객체 정보 갱신 (예시)
-                SelectedBBoxInfo = $"탐지 객체 수: {BBoxes.Count}";
+                SelectedBBoxInfo = $"탐지 객체 수: {_shared.BBoxes.Count}";
             });
         }
 
@@ -165,7 +166,7 @@ namespace Operation_Control_System.ViewModels
         {
             if ((DateTime.UtcNow - _lastBBoxTime).TotalMilliseconds > 300)
             {
-                App.Current?.Dispatcher?.Invoke(() => BBoxes.Clear());
+                App.Current?.Dispatcher?.Invoke(() => _shared.BBoxes.Clear());
             }
         }
 
@@ -190,13 +191,13 @@ namespace Operation_Control_System.ViewModels
             {
                 _controlViewModel.TrackedTargetId = id;
 
-                var target = BBoxes.FirstOrDefault(x => x.Id == id);
+                var target = _shared.BBoxes.FirstOrDefault(x => x.Id == id);
                 if (target != null)
                 {
                     // ✅ 클릭된 BBox의 추적 상태 업데이트
                     target.IsTracked = true;
 
-                    System.Diagnostics.Debug.WriteLine($"[VideoStream] 🖱️ BBox clicked → ID={id}, IsTracked=True");
+                    Debug.WriteLine($"[VideoStream] 🖱️ BBox clicked → ID={id}, IsTracked=True");
                 }
 
                 _ = _networkService.SendAsync(new Message<TrackTargetData>
@@ -214,7 +215,7 @@ namespace Operation_Control_System.ViewModels
             {
                 if (param is int id)
                 {
-                    var target = BBoxes.FirstOrDefault(x => x.Id == id);
+                    var target = _shared.BBoxes.FirstOrDefault(x => x.Id == id);
                     if (target != null)
                     {
                         target.IsTracked = true;
@@ -225,7 +226,7 @@ namespace Operation_Control_System.ViewModels
                             Data = new TrackTargetData { TargetId = id }
                         });
 
-                        System.Diagnostics.Debug.WriteLine($"[VideoStream] 🎯 Track start → ID={id}");
+                        Debug.WriteLine($"[VideoStream] 🎯 Track start → ID={id}");
                     }
                 }
             }
@@ -236,7 +237,7 @@ namespace Operation_Control_System.ViewModels
         {
             if (param is int id)
             {
-                var target = BBoxes.FirstOrDefault(x => x.Id == id);
+                var target = _shared.BBoxes.FirstOrDefault(x => x.Id == id);
                 if (target != null)
                 {
                     target.IsTracked = false;

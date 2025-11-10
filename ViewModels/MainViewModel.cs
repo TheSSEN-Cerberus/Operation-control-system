@@ -7,6 +7,7 @@ namespace Operation_Control_System.ViewModels
 {
     public class MainViewModel : BaseViewModel, IDisposable
     {
+        public SharedStateService Shared { get; }
         public NetworkViewModel Network { get; }
         public ControlViewModel Control { get; }
         public MapViewModel Map { get; }
@@ -19,14 +20,17 @@ namespace Operation_Control_System.ViewModels
         public MainViewModel()
         {
             Debug.WriteLine($"[VM] MainViewModel created at {DateTime.Now:HH:mm:ss.fff}, Thread={Environment.CurrentManagedThreadId}");
+
+            Shared = new SharedStateService();
+
             // 단일 네트워크 서비스
             _networkService = new NetworkService();
             _bluetoothService = new BluetoothService();
 
-            Map = new MapViewModel(_networkService);
+            Map = new MapViewModel(_networkService, Shared);
             Network = new NetworkViewModel(_networkService, _bluetoothService);
             Control = new ControlViewModel(_networkService, _bluetoothService, Map);
-            VideoStream = new VideoStreamViewModel(_networkService, Control, Map);
+            VideoStream = new VideoStreamViewModel(_networkService, Control, Map, Shared);
             EmergencyStopCommand = new RelayCommand(async _ => await ExecuteEmergencyStop());
         }
 
@@ -85,7 +89,7 @@ namespace Operation_Control_System.ViewModels
             Control.GimbalRightColor = System.Windows.Media.Brushes.Gray;
 
             // Video 초기화
-            VideoStream.BBoxes.Clear();
+            
             VideoStream.SelectedBBoxInfo = "객체 정보 없음";
             Debug.WriteLine("[System] ✅ State Reset Done (Network kept alive)");
 
