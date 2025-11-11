@@ -263,8 +263,12 @@ namespace Operation_Control_System.ViewModels
         /// <param name="ready">격발 준비 상태 (true: 준비 완료, false: 준비 안됨)</param>
         public void SetFireReady(bool ready)
         {
-            _fireReady = ready;
-            UpdateCanFire(); // 격발 가능 여부 업데이트
+            App.Current?.Dispatcher?.Invoke(() =>
+            {
+                _fireReady = ready;
+                UpdateCanFire(); // 격발 가능 여부 업데이트
+            });
+
         }
 
         /// <summary>

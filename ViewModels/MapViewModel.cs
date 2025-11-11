@@ -123,7 +123,6 @@ namespace Operation_Control_System.ViewModels
 
         private void OnStatusReceived(StatusData data)
         {
-            Debug.WriteLine(data.Yaw);
             if(data.Yaw >= 0)
                 _shared.Heading = data.Yaw;
             else
@@ -151,7 +150,13 @@ namespace Operation_Control_System.ViewModels
             double heading = _shared.Heading;
 
             var (lat, lon) = CalculateTargetPosition(Latitude, Longitude, heading, data.Distance);
-            UpdateTargetMarker(lat, lon, data.TargetId, priority);
+
+            Application.Current?.Dispatcher?.Invoke(() =>
+            {
+                bbox.TargetLat = lat;
+                bbox.TargetLon = lon;
+                UpdateTargetMarker(lat, lon, data.TargetId, priority);
+            });
 
         }
 
@@ -168,7 +173,6 @@ namespace Operation_Control_System.ViewModels
                 _targetMarkers.Remove(id);
             }
 
-            Brush borderColor = (priority == 1) ? Brushes.Red : Brushes.LimeGreen;
 
             var marker = new GMapMarker(point)
             {
@@ -176,9 +180,9 @@ namespace Operation_Control_System.ViewModels
                 {
                     Width = 12,
                     Height = 12,
-                    Stroke = borderColor,
+                    Stroke = Brushes.Red,
                     StrokeThickness = 2,
-                    Fill = Brushes.Yellow
+                    Fill = Brushes.Red
                 },
                 Offset = new System.Windows.Point(-6, -6),
                 ZIndex = 2
@@ -219,7 +223,7 @@ namespace Operation_Control_System.ViewModels
                 return;
 
             const double fovHalf = 25.0;     // 좌우 ±25도
-            const double rangeMeters = 80.0; // 부채꼴 반경 (m)
+            const double rangeMeters = 100.0; // 부채꼴 반경 (m)
             const int steps = 24;            // 곡선 해상도
 
             double startAngle = _shared.Heading - fovHalf;
@@ -282,18 +286,19 @@ namespace Operation_Control_System.ViewModels
             return new PointLatLng(lat2 * 180.0 / Math.PI, lon2 * 180.0 / Math.PI);
         }
 
-        public (double lat, double lon) CalculateTargetPosition(double startLat, double startLon, double headingDeg, double distanceMeters)
+        public (double lat, double lon) CalculateTargetPosition(double startLat, double startLon, double headingDeg, double distance)
         {
             const double EarthRadius = 6378137.0; // meters
+            double distanceCm = distance / 10; // cm 기준 10배로
             double bearing = headingDeg * Math.PI / 180.0;
             double lat1 = startLat * Math.PI / 180.0;
             double lon1 = startLon * Math.PI / 180.0;
 
-            double lat2 = Math.Asin(Math.Sin(lat1) * Math.Cos(distanceMeters / EarthRadius) +
-                                    Math.Cos(lat1) * Math.Sin(distanceMeters / EarthRadius) * Math.Cos(bearing));
+            double lat2 = Math.Asin(Math.Sin(lat1) * Math.Cos(distanceCm / EarthRadius) +
+                                    Math.Cos(lat1) * Math.Sin(distanceCm / EarthRadius) * Math.Cos(bearing));
 
-            double lon2 = lon1 + Math.Atan2(Math.Sin(bearing) * Math.Sin(distanceMeters / EarthRadius) * Math.Cos(lat1),
-                                            Math.Cos(distanceMeters / EarthRadius) - Math.Sin(lat1) * Math.Sin(lat2));
+            double lon2 = lon1 + Math.Atan2(Math.Sin(bearing) * Math.Sin(distanceCm / EarthRadius) * Math.Cos(lat1),
+                                            Math.Cos(distanceCm / EarthRadius) - Math.Sin(lat1) * Math.Sin(lat2));
 
             return (lat2 * 180.0 / Math.PI, lon2 * 180.0 / Math.PI);
         }
