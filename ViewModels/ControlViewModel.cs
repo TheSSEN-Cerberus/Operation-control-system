@@ -10,20 +10,37 @@ using System.Windows.Media;
 using System.Windows.Threading;
 using Debug = System.Diagnostics.Debug;
 using Task = System.Threading.Tasks.Task;
-using System.Collections.Generic; // Dictionary를 사용하기 위해 추가
+using System.Collections.Generic;
+using DateTime = System.DateTime;
+using System.Reflection.Metadata.Ecma335;
+
 
 namespace Operation_Control_System.ViewModels
 {
     public class ControlViewModel : BaseViewModel
     {
+
+        private readonly DispatcherTimer _moveTimer;
+        private DateTime _lastUpdateTime;
+        private const double RobotSpeedCmPerSec = 54.3; // 이동속도 [cm/s]
+
+
         // --- 의존성 주입 필드 ---
         private readonly NetworkService _networkService;
         private readonly BluetoothService _bluetoothService;
+        private readonly MapViewModel _mapViewModel;
         // --- 생성자 ---
-        public ControlViewModel(NetworkService networkService, BluetoothService bluetoothService)
+        public ControlViewModel(NetworkService networkService, BluetoothService bluetoothService, MapViewModel mapViewModel)
         {
             _networkService = networkService;
             _bluetoothService = bluetoothService;
+            _mapViewModel = mapViewModel;
+
+            _moveTimer = new DispatcherTimer
+            {
+                Interval = TimeSpan.FromMilliseconds(100)
+            };
+            _moveTimer.Tick += OnMoveTick;
 
 
             // ✅ 명령 초기화
@@ -35,6 +52,8 @@ namespace Operation_Control_System.ViewModels
             _networkService.TrackTargetReceived += OnTrackTargetReceived;
 
             _ = _bluetoothService.StartAutoConnectAsync();
+
+
         }
 
         // ====================================================================================================
@@ -119,16 +138,6 @@ namespace Operation_Control_System.ViewModels
         {
             get => _moveForwardColor;
             set => SetProperty(ref _moveForwardColor, value);
-        }
-
-        private Brush _moveStopColor = Brushes.Gray; // 현재 사용되지 않음.
-        /// <summary>
-        /// 정지 버튼의 색상을 나타냅니다. (현재 사용되지 않음)
-        /// </summary>
-        public Brush MoveStopColor
-        {
-            get => _moveStopColor;
-            set => SetProperty(ref _moveStopColor, value);
         }
 
         // --- 김발 방향 색상 (UI 피드백) ---
@@ -254,8 +263,12 @@ namespace Operation_Control_System.ViewModels
         /// <param name="ready">격발 준비 상태 (true: 준비 완료, false: 준비 안됨)</param>
         public void SetFireReady(bool ready)
         {
-            _fireReady = ready;
-            UpdateCanFire(); // 격발 가능 여부 업데이트
+            App.Current?.Dispatcher?.Invoke(() =>
+            {
+                _fireReady = ready;
+                UpdateCanFire(); // 격발 가능 여부 업데이트
+            });
+
         }
 
         /// <summary>
@@ -376,41 +389,49 @@ namespace Operation_Control_System.ViewModels
         /// </summary>
         public void ToggleMoving()
         {
-            MovingState = (MovingState == 0) ? 1 : 0; // 0 ↔ 1 토글
-
-            // 색상 업데이트
-            MoveForwardColor = (MovingState == 1) ? Brushes.LimeGreen : Brushes.Gray;
-
-            _ = SendRobotMovingCommandAsync(MovingState); // 로봇 이동 명령 전송
-            if (_bluetoothService.IsConnected)
+            if (MovingState == 0)
             {
-                string cmd = (MovingState == 1) ? _bluetoothService.MoveCommand : _bluetoothService.StopCommand;
-                _ = _bluetoothService.SendCommandAsync(cmd);
+                // 🔹 전진 시작
+                MovingState = 1;
+                _lastUpdateTime = DateTime.Now;
+                _moveTimer.Start();
+
+                MoveForwardColor = Brushes.LimeGreen;
+                
+                // BLE 명령
+                if (_bluetoothService.IsConnected)
+                    _ = _bluetoothService.SendCommandAsync(_bluetoothService.MoveCommand);
+            }
+            else
+            {
+                // 🔹 정지
+                MovingState = 0;
+                _moveTimer.Stop();
+
+                MoveForwardColor = Brushes.Gray;
+
+                if (_bluetoothService.IsConnected)
+                    _ = _bluetoothService.SendCommandAsync(_bluetoothService.StopCommand);
             }
 
-            Debug.WriteLine($"[Control] Robot moving toggled → {MovingState}");
+            Debug.WriteLine($"[Control] Moving → {MovingState}");
         }
 
-        /// <summary>
-        /// 로봇 이동 명령을 비동기적으로 전송합니다.
-        /// </summary>
-        /// <param name="moving">이동 상태 (0: 정지, 1: 전진)</param>
-        /// <returns>비동기 작업</returns>
-        private async Task SendRobotMovingCommandAsync(int moving)
+
+
+        private void OnMoveTick(object? sender, EventArgs e)
         {
-            try
+            if (MovingState == 1 && _bluetoothService.IsConnected)
             {
-                await _networkService.SendAsync(new Message<RobotMovingData>
-                {
-                    Type = "robot_moving",
-                    Data = new RobotMovingData { Moving = moving }
-                });
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"[Control] Robot moving send error: {ex.Message}");
+                var now = DateTime.Now;
+                double elapsed = (now - _lastUpdateTime).TotalSeconds;
+                _lastUpdateTime = now;
+
+                double distance = RobotSpeedCmPerSec * elapsed;
+                _mapViewModel.UpdateRobotPosition(distance);
             }
         }
+
 
         /// <summary>
         /// 김발 제어 방향 키 입력을 처리하고 증분 명령을 전송합니다.
@@ -513,6 +534,7 @@ namespace Operation_Control_System.ViewModels
             }
             try
             {
+                CanFire = false;
                 await _networkService.SendAsync(new Message<FireCommandData>
                 {
                     Type = "fire_command",
@@ -521,10 +543,16 @@ namespace Operation_Control_System.ViewModels
                         Trigger = true // 격발 트리거
                     }
                 });
+                await Task.Delay(1000);
             }
             catch (Exception ex)
             {
                 Debug.WriteLine($"[Control] Fire send error: {ex.Message}");
+            }
+            finally
+            {
+                // 🔸 1초 후 다시 상태 갱신
+                UpdateCanFire();
             }
         }
 

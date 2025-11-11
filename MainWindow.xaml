@@ -56,9 +56,9 @@
                     </StackPanel>
                 </Grid>
                 </Viewbox>
-                
-                
-                <ItemsControl ItemsSource="{Binding VideoStream.BBoxes}">
+
+
+                    <ItemsControl ItemsSource="{Binding Shared.BBoxes}">
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
                             <Canvas/>
@@ -91,7 +91,7 @@
                 <GroupBox Grid.Row="1" Header="TARGET INFO">
 
                     <ScrollViewer VerticalScrollBarVisibility="Auto">
-                        <DataGrid ItemsSource="{Binding VideoStream.BBoxes}"
+                        <DataGrid ItemsSource="{Binding Shared.BBoxes}"
                           AutoGenerateColumns="False"
                           CanUserAddRows="False"
                           IsReadOnly="True"
@@ -109,10 +109,13 @@
                                 </Style>
                             </DataGrid.Resources>
                             <DataGrid.Columns>
-                                <DataGridTextColumn Header="ID" Binding="{Binding Id}" Width="80" />
-                                <DataGridTextColumn Header="Class" Binding="{Binding ClassLabel}" Width="80"/>
-                                <DataGridTextColumn Header="Conf" Binding="{Binding Confidence, StringFormat={}{0:P1}}" Width="100"/>
-                                <DataGridTextColumn Header="Priority" Binding="{Binding Priority}" Width="80"/>
+                                <DataGridTextColumn Header="ID" Binding="{Binding Id}" Width="70" />
+                                <DataGridTextColumn Header="Class" Binding="{Binding ClassLabel}" Width="70"/>
+                                <DataGridTextColumn Header="Conf" Binding="{Binding Confidence, StringFormat={}{0:P1}}" Width="70"/>
+                                <DataGridTextColumn Header="Priority" Binding="{Binding Priority}" Width="70"/>
+                                <DataGridTextColumn Header="Target Lat" Binding="{Binding TargetLat, StringFormat={}{0:F6}}" Width="120"/>
+                                <DataGridTextColumn Header="Target Lon" Binding="{Binding TargetLon, StringFormat={}{0:F6}}" Width="120"/>
+
 
                                 <!-- Control 버튼 컬럼 -->
                                 <DataGridTemplateColumn Header="Control" Width="*">
@@ -156,7 +159,6 @@
                 <!-- MAP -->
             </Grid.RowDefinitions>
 
-            <!-- 네트워크 상태 -->
             <GroupBox Header="NETWORK" Grid.Row="0" Margin="0,0,0,5">
                 <Grid>
                     <Grid.ColumnDefinitions>
@@ -164,6 +166,7 @@
                         <ColumnDefinition Width="2*"/>
                     </Grid.ColumnDefinitions>
 
+                    <!-- 왼쪽: 네트워크 상태 표시 (그대로 유지) -->
                     <StackPanel Orientation="Horizontal" Grid.Column="0">
                         <TextBlock Text="Network:" VerticalAlignment="Center" Margin="5"/>
                         <Ellipse Width="20" Height="20" Fill="{Binding Network.NetworkStatusColor}" Stroke="Black" StrokeThickness="1" Margin="5"/>
@@ -171,12 +174,51 @@
                         <Ellipse Width="20" Height="20" Fill="{Binding Network.BleStatusColor}" Stroke="Black" StrokeThickness="1" Margin="5"/>
                     </StackPanel>
 
+                    <!-- 오른쪽: 위도·경도 + 설정 버튼 -->
                     <StackPanel Orientation="Horizontal" Grid.Column="1" HorizontalAlignment="Right">
+
                         <TextBlock Text="위도:" VerticalAlignment="Center" Margin="5"/>
-                        <TextBox Text="{Binding Map.StartLatitude, Mode=TwoWay}" Width="100" Margin="5"/>
+
+                        <!-- TextBox: IsSet == false일 때 보임 -->
+                        <TextBox Text="{Binding Map.Latitude, Mode=TwoWay}" Width="100" Margin="5">
+                            <TextBox.Style>
+                                <Style TargetType="TextBox">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding Map.IsSet}" Value="True">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBox.Style>
+                        </TextBox>
+
+                        <!-- TextBlock: IsSet == true일 때 보임 -->
+                        <TextBlock Text="{Binding Map.Latitude, StringFormat={}{0:F8}}" Width="100" Margin="5" VerticalAlignment="Center"
+                       Visibility="{Binding Map.IsSet, Converter={StaticResource BoolToVisibilityConverter}}"/>
+
                         <TextBlock Text="경도:" VerticalAlignment="Center" Margin="5"/>
-                        <TextBox Text="{Binding Map.StartLongitude, Mode=TwoWay}" Width="100" Margin="5"/>
-                        <Button Content="설정" Command="{Binding Map.SetStartPositionCommand}" Width="70" Margin="5"/>
+
+                        <TextBox Text="{Binding Map.Longitude, Mode=TwoWay}" Width="100" Margin="5">
+                            <TextBox.Style>
+                                <Style TargetType="TextBox">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding Map.IsSet}" Value="True">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                        </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBox.Style>
+                        </TextBox>
+
+                        <TextBlock Text="{Binding Map.Longitude, StringFormat={}{0:F8}}" Width="100" Margin="5" VerticalAlignment="Center"
+                       Visibility="{Binding Map.IsSet, Converter={StaticResource BoolToVisibilityConverter}}"/>
+
+                        <!-- 설정 버튼 -->
+                        <Button Content="설정"
+                    Command="{Binding Map.SetStartPositionCommand}"
+                    Width="70" Margin="5"/>
                     </StackPanel>
                 </Grid>
             </GroupBox>
@@ -346,8 +388,8 @@
                 <gmap:GMapControl x:Name="MapControl"
                                   Margin="5"
                                   Zoom="{Binding Map.Zoom, Mode=OneWay}"
-                                                          MinZoom="2"
-                        MaxZoom="22"
+                                  MinZoom="2"
+                                  MaxZoom="22"
                                   Position="{Binding Map.MapCenter, Mode=OneWay}"
                                   CanDragMap="True"
                                   MouseWheelZoomType="MousePositionAndCenter"

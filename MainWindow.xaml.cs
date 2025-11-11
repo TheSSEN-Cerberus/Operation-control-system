@@ -29,8 +29,10 @@ namespace Operation_Control_System
             if (DataContext is MainViewModel vm)
             {
                 await vm.VideoStream.StartAsync(port: 5600);
+                vm.Map.Initialize(MapControl);
             }
         }
+
         private void OnPreviewKeyDown(object sender, KeyEventArgs e)
         {
             // 🔸 스페이스 키 차단 (UI 버튼에 전달되지 않도록)
@@ -58,6 +60,9 @@ namespace Operation_Control_System
             }
         }
 
+        private void MapControl_Loaded(object sender, RoutedEventArgs e)
+        {
 
+        }
     }
 }
