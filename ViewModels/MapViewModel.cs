@@ -150,12 +150,15 @@ namespace Operation_Control_System.ViewModels
             double heading = _shared.Heading;
 
             var (lat, lon) = CalculateTargetPosition(Latitude, Longitude, heading, data.Distance);
-
+            Debug.WriteLine("firereat :", lat, " ", lon);
             Application.Current?.Dispatcher?.Invoke(() =>
             {
-                bbox.TargetLat = lat;
-                bbox.TargetLon = lon;
-                UpdateTargetMarker(lat, lon, data.TargetId, priority);
+                if(bbox!= null)
+                {
+                    bbox.TargetLat = lat;
+                    bbox.TargetLon = lon;
+                    UpdateTargetMarker(lat, lon, data.TargetId, priority);
+                }
             });
 
         }
