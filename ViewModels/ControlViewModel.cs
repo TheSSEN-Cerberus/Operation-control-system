@@ -439,18 +439,18 @@ namespace Operation_Control_System.ViewModels
         /// <param name="key">눌린 방향 키</param>
         private void HandleGimbalKey(Key key)
         {
-            float dAz = 0, dEl = 0;
+            float dY = 0, dP = 0;
 
             switch (key)
             {
-                case Key.W: dEl = +1; break; // 위로
-                case Key.S: dEl = -1; break; // 아래로
-                case Key.A: dAz = -1; break; // 왼쪽으로
-                case Key.D: dAz = +1; break; // 오른쪽으로
+                case Key.W: dP = +1; break; // 위로
+                case Key.S: dP = -1; break; // 아래로
+                case Key.A: dY = -1; break; // 왼쪽으로
+                case Key.D: dY = +1; break; // 오른쪽으로
                 default: return;
             }
 
-            _ = SendGimbalCommandAsync(dAz, dEl); // 김발 증분 명령 전송
+            _ = SendGimbalCommandAsync(dY, dP); // 김발 증분 명령 전송
         }
 
         /// <summary>
@@ -459,17 +459,15 @@ namespace Operation_Control_System.ViewModels
         /// <param name="dAz">방위각 증분 값</param>
         /// <param name="dEl">고각 증분 값</param>
         /// <returns>비동기 작업</returns>
-        private async Task SendGimbalCommandAsync(float dAz, float dEl)
+        private async Task SendGimbalCommandAsync(float dY, float dP)
         {
             try
             {
                 await _networkService.SendAsync(new Message<GimbalControlData>
                 {
                     Type = "gimbal_control",
-                    Data = new GimbalControlData { Azimuth = dAz, Elevation = dEl }
+                    Data = new GimbalControlData { Yaw = dY, Pitch = dP }
                 });
-
-                Console.WriteLine($"[Control] Sent ΔAz={dAz}, ΔEl={dEl}");
             }
             catch (Exception ex)
             {
