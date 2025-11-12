@@ -44,7 +44,6 @@ namespace Operation_Control_System.ViewModels
 
 
             // ✅ 명령 초기화
-            ConfirmKillCommand = new RelayCommand(OnConfirmKill);
             SendFireCommand = new RelayCommand(OnSendFire);
 
             // ✅ 네트워크 서비스 이벤트 구독
@@ -110,24 +109,26 @@ namespace Operation_Control_System.ViewModels
         /// <summary>
         /// 선택 가능한 운용 모드 목록입니다.
         /// </summary>
-        public ObservableCollection<string> OperationModes { get; } =
-            new() { "수동", "반자동", "자동" };
-
-        private string _selectedOperationMode = "수동";
-        /// <summary>
-        /// 현재 선택된 운용 모드를 나타냅니다.
-        /// </summary>
-        public string SelectedOperationMode
+        private bool _isAutoOperation;
+        public bool IsAutoOperation
         {
-            get => _selectedOperationMode;
+            get => _isAutoOperation;
             set
             {
-                if (SetProperty(ref _selectedOperationMode, value))
+                if (SetProperty(ref _isAutoOperation, value))
                 {
-                    _ = SendOperationModeChange(value); // 운용 모드 변경 명령 전송
+                    OnPropertyChanged(nameof(OperationModeText));
+                    _ = SendOperationModeChange(value); // 레이저 제어 명령 전송
                 }
             }
         }
+
+        public string OperationModeText => IsAutoOperation ? "자동" : "수동";
+
+        /// <summary>
+        /// 현재 선택된 운용 모드를 나타냅니다.
+        /// </summary>
+       
 
         // --- 움직임 상태 색상 (UI 피드백) ---
         private Brush _moveForwardColor = Brushes.Gray;
@@ -200,25 +201,7 @@ namespace Operation_Control_System.ViewModels
         public bool CanFire
         {
             get => _canFire;
-            set
-            {
-                if (SetProperty(ref _canFire, value))
-                    OnPropertyChanged(nameof(FireStatusText));
-            }
-        }
-        /// <summary>
-        /// 격발 가능 여부에 따른 텍스트를 반환합니다.
-        /// </summary>
-        public string FireStatusText => CanFire ? "(가능)" : "(불가)";
-
-        private bool? _lastFireHit;
-        /// <summary>
-        /// 마지막 격발의 성공/실패 여부를 나타냅니다. (null이면 정보 없음)
-        /// </summary>
-        public bool? LastFireHit
-        {
-            get => _lastFireHit;
-            set => SetProperty(ref _lastFireHit, value);
+            set => SetProperty(ref _canFire, value);
         }
 
         // --- 로봇 이동 상태 ---
@@ -236,10 +219,6 @@ namespace Operation_Control_System.ViewModels
         // --- 명령 (Commands) ---
         // ====================================================================================================
 
-        /// <summary>
-        /// 타격 성공/실패를 보드에 전송하는 명령입니다.
-        /// </summary>
-        public ICommand ConfirmKillCommand { get; }
         /// <summary>
         /// 격발 명령을 보드에 전송하는 명령입니다.
         /// </summary>
@@ -281,15 +260,8 @@ namespace Operation_Control_System.ViewModels
             // ===============================
             // 🔸 운용모드에 따른 키 입력 제한
             // ===============================
-            // 🚫 자동 모드일 때는 R 무시
-            if (SelectedOperationMode == "자동" && key == Key.R)
-            {
-                Debug.WriteLine("[Control] R ignored (자동 모드).");
-                return;
-            }
-
-            // 🚫 비수동 모드일 때는 김발 조작(WASD) 무시
-            if (SelectedOperationMode != "수동" &&
+            // 🚫 자동 모드일 때는 김발 조작(WASD) 무시
+            if (IsAutoOperation == true &&
                 (key == Key.W || key == Key.A || key == Key.S || key == Key.D))
             {
                 Debug.WriteLine("[Control] Gimbal key ignored (비수동 모드).");
@@ -350,7 +322,6 @@ namespace Operation_Control_System.ViewModels
         private void UpdateCanFire()
         {
             CanFire = _fireReady && IsAutoFire == false;
-            Debug.WriteLine($"[Control] CanFire updated: {_fireReady} && {SelectedOperationMode} == '수동' → {CanFire}");
         }
 
         /// <summary>
@@ -443,10 +414,10 @@ namespace Operation_Control_System.ViewModels
 
             switch (key)
             {
-                case Key.W: dP = +1; break; // 위로
-                case Key.S: dP = -1; break; // 아래로
-                case Key.A: dY = -1; break; // 왼쪽으로
-                case Key.D: dY = +1; break; // 오른쪽으로
+                case Key.W: dP = -2; break; // 위로
+                case Key.S: dP = +2; break; // 아래로
+                case Key.A: dY = -2; break; // 왼쪽으로
+                case Key.D: dY = +2; break; // 오른쪽으로
                 default: return;
             }
 
@@ -485,39 +456,8 @@ namespace Operation_Control_System.ViewModels
             Debug.WriteLine($"[Control] Fire Ready = {CanFire}");
         }
 
-        /// <summary>
-        /// 운용자 GUI에서 타격 성공/실패를 판단했을 때 호출되며, 결과를 보드에 전송합니다.
-        /// </summary>
-        /// <param name="param">"true" 또는 "false" 문자열</param>
-        private async void OnConfirmKill(object? param)
-        {
-            if (param is string result)
-            {
-                bool isHit = result.Equals("true", StringComparison.OrdinalIgnoreCase);
-                LastFireHit = isHit; // 마지막 격발 결과 업데이트
-                Debug.WriteLine($"[Control] GUI confirmed: {(isHit ? "HIT ✅" : "MISS ❌")}");
-                try
-                {
-                    await _networkService.SendAsync(new Message<FireResultData>
-                    {
-                        Type = "fire_result",
-                        Data = new FireResultData
-                        {
-                            Success = isHit
-                        }
-                    });
-                    if (isHit) // 명중 시 격발 준비 해제 및 추적 타겟 초기화
-                    {
-                        SetFireReady(false);
-                        TrackedTargetId = null;
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Debug.WriteLine($"[Control] FireResult send error: {ex.Message}");
-                }
-            }
-        }
+
+
 
         /// <summary>
         /// 격발 명령을 보드에 전송합니다.
@@ -532,7 +472,6 @@ namespace Operation_Control_System.ViewModels
             }
             try
             {
-                CanFire = false;
                 await _networkService.SendAsync(new Message<FireCommandData>
                 {
                     Type = "fire_command",
@@ -541,7 +480,6 @@ namespace Operation_Control_System.ViewModels
                         Trigger = true // 격발 트리거
                     }
                 });
-                await Task.Delay(1000);
             }
             catch (Exception ex)
             {
@@ -549,6 +487,7 @@ namespace Operation_Control_System.ViewModels
             }
             finally
             {
+                _fireReady = false;
                 // 🔸 1초 후 다시 상태 갱신
                 UpdateCanFire();
             }
@@ -560,7 +499,7 @@ namespace Operation_Control_System.ViewModels
         /// <param name="data">추적 타겟 데이터</param>
         private void OnTrackTargetReceived(TrackTargetData data)
         {
-            if (_selectedOperationMode == "수동") // 수동 모드에서는 타겟 추적 정보를 무시
+            if (IsAutoOperation == false) // 수동 모드에서는 타겟 추적 정보를 무시
             {
                 return;
             }
@@ -617,36 +556,20 @@ namespace Operation_Control_System.ViewModels
         /// </summary>
         /// <param name="mode">변경할 운용 모드 ("수동", "반자동", "자동")</param>
         /// <returns>비동기 작업</returns>
-        private async Task SendOperationModeChange(string mode)
+        private async Task SendOperationModeChange(bool isAuto)
         {
             try
             {
-                int int_mode;
-                switch (mode)
-                {
-                    case "수동":
-                        int_mode = 1;
-                        break;
-                    case "반자동":
-                        int_mode = 2;
-                        break;
-                    case "자동":
-                        int_mode = 3;
-                        break;
-                    default:
-                        Debug.WriteLine($"[Control] Unknown operation mode: {mode}");
-                        return;
-                }
                 await _networkService.SendAsync(new Message<OperationModeData>
                 {
                     Type = "operation_mode",
-                    Data = new OperationModeData { Mode = int_mode }
+                    Data = new OperationModeData { Mode = isAuto ? 1 : 0 } // 1: 자동, 0: 수동
                 });
-                Debug.WriteLine($"[Control] Operation mode {int_mode} sent.");
+                Debug.WriteLine($"[Control] Operation mode {(isAuto ? "AUTO" : "MANUAL")} sent.");
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"[Control] OperationMode send error: {ex.Message}");
+                Debug.WriteLine($"[Control] FireMode send error: {ex.Message}");
             }
         }
 

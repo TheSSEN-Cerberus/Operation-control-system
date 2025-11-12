@@ -188,7 +188,7 @@ namespace Operation_Control_System.ViewModels
         public void OnBBoxClicked(int id)
         {
             // 수동 모드일 때만 추적 명령 전송
-            if (_controlViewModel.SelectedOperationMode == "수동")
+            if (_controlViewModel.IsAutoOperation == false)
             {
                 _controlViewModel.TrackedTargetId = id;
 
@@ -212,7 +212,7 @@ namespace Operation_Control_System.ViewModels
         // 🔸 추적 명령
         private async void OnTrack(object? param)
         {
-            if (_controlViewModel.SelectedOperationMode == "수동")
+            if (_controlViewModel.IsAutoOperation == false)
             {
                 if (param is int id)
                 {

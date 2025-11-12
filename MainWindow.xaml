@@ -42,10 +42,16 @@
                 <Grid Grid.Row="0">
 
                     <Image Source="{Binding VideoStream.CurrentFrame}" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Top"/>
-                <!-- 🎞 로딩 애니메이션 -->
+                    <Ellipse Width="6" Height="6" Fill="Red"
+         Stroke="Black" StrokeThickness="1"
+         Canvas.Left="{Binding VideoStream.CenterX}"
+         Canvas.Top="{Binding VideoStream.CenterY}"
+         Panel.ZIndex="99"/>
+                    <!-- 🎞 로딩 애니메이션 -->
                 <Viewbox Stretch="Uniform"
          HorizontalAlignment="Center"
          VerticalAlignment="Top">
+                    
                 <Grid Visibility="{Binding VideoStream.CurrentFrame, Converter={StaticResource NullToVisibilityConverter}}"
               Background="#66000000"
               Width="640" Height="480"
@@ -72,7 +78,8 @@
                     </ItemsControl.ItemContainerStyle>
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <Border BorderBrush="{Binding BoxColor}" BorderThickness="2"
+                                <Canvas>
+                                    <Border BorderBrush="{Binding BoxColor}" BorderThickness="2"
                                     Width="{Binding Width}" Height="{Binding Height}"
                                     Background="#20FF0000">
                                     <Border.InputBindings>
@@ -83,7 +90,15 @@
                                     <TextBlock Text="{Binding ClassLabel}" Foreground="White" FontSize="10"/>
                                 </StackPanel>
                             </Border>
-                        </DataTemplate>
+                                <!-- 🟢 BBox 중심점 -->
+                                <Ellipse Width="4" Height="4"
+                                     Stroke="Black" StrokeThickness="1"
+                                     Fill="Lime"
+                                     Canvas.Left="{Binding CenterX}"
+                                     Canvas.Top="{Binding CenterY}">
+                                </Ellipse>
+                                    </Canvas>
+                            </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
                 </Grid>
@@ -236,9 +251,7 @@
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" Margin="5">
                         <TextBlock Text="운용:" Margin="5"/>
-                        <ComboBox ItemsSource="{Binding Control.OperationModes}"
-                                  SelectedItem="{Binding Control.SelectedOperationMode, Mode=TwoWay}"
-                                  Width="120"/>
+                        <ToggleButton Content="{Binding Control.OperationModeText}" IsChecked="{Binding Control.IsAutoOperation, Mode=TwoWay}" Width="80" Height="25"/>
                     </StackPanel>
                 </StackPanel>
             </GroupBox>
@@ -260,19 +273,6 @@
                     Height="70"
                     Margin="5"/>
 
-                        <Button Content="HIT"
-                    Command="{Binding Control.ConfirmKillCommand}"
-                    CommandParameter="true"
-                    FontWeight="Bold"
-                    Height="70"
-                    Margin="5"/>
-
-                        <Button Content="MISS"
-                    Command="{Binding Control.ConfirmKillCommand}"
-                    CommandParameter="false"
-                    FontWeight="Bold"
-                    Height="70"
-                    Margin="5"/>
                     </UniformGrid>
 
                     <!-- 🔸 오른쪽: 비상정지 버튼 -->

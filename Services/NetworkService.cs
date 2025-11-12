@@ -29,7 +29,6 @@ namespace Operation_Control_System.Services
         public event Action<StatusData>? StatusReceived;
         public event Action<FireReadyData>? FireReadyReceived;
         public event Action<BBoxData>? BBoxReceived;
-        public event Action<FireResultData>? FireResultReceived;
         public event Action<TrackTargetData>? TrackTargetReceived;
 
         // =====================
@@ -68,6 +67,7 @@ namespace Operation_Control_System.Services
         // =====================
         public async Task SendAsync<T>(Message<T> msg)
         {
+            if (_udp.RemoteIP == null) return;
             try
             {
                 var options = new JsonSerializerOptions
@@ -85,7 +85,7 @@ namespace Operation_Control_System.Services
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[Network] Send error: {ex.Message}");
+                 Debug.WriteLine($"[Network] Send error: {ex}");
             }
         }
 
@@ -142,14 +142,6 @@ namespace Operation_Control_System.Services
                         }
                         break;
 
-                    case "fire_result":
-                        var resultMsg = JsonSerializer.Deserialize<Message<FireResultData>>(json);
-                        if (resultMsg?.Data != null)
-                        {
-                            FireResultReceived?.Invoke(resultMsg.Data);
-                            Console.WriteLine($"[Network] FireResult: {(resultMsg.Data.Success ? "HIT" : "MISS")}");
-                        }
-                        break;
                     case "track_target":
                         var trackMsg = JsonSerializer.Deserialize<Message<TrackTargetData>>(json);
                         if (trackMsg?.Data != null)
@@ -204,7 +196,6 @@ namespace Operation_Control_System.Services
             StatusReceived = null;
             FireReadyReceived = null;
             BBoxReceived = null;
-            FireResultReceived = null;
             TrackTargetReceived = null;
             _ = StopAsync();
             _watchdog.Dispose();

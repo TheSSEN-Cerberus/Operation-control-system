@@ -80,6 +80,9 @@ namespace Operation_Control_System.ViewModels
         public ICommand ClickCommand { get; }
         public event Action<int>? Clicked;
 
+        public double CenterX => X + Width / 2.0 - 2;
+        public double CenterY => Y + Height / 2.0 - 2;
+
         public BBoxViewModel(DetectedObject model, int frameWidth, int frameHeight)
         {
             Id = model.Id;
