@@ -59,11 +59,23 @@ namespace Operation_Control_System.Services
             Stop();
             _isRunning = true;
 
+            // ver 1
             string pipelineDesc =
                 $"udpsrc port={udpPort} " +
                 "caps=application/x-rtp,media=video,encoding-name=JPEG,payload=26,clock-rate=90000 ! " +
                 "rtpjpegdepay ! jpegdec ! videoconvert ! " +
                 "video/x-raw,format=BGRx ! appsink name=sink emit-signals=true max-buffers=1 drop=true";
+
+            // ver2
+            //string pipelineDesc =
+            //    $"udpsrc port={udpPort} buffer-size=4096 ! "
+            //  + "caps=application/x-rtp,media=video,encoding-name=JPEG,payload=26,clock-rate=90000 ! "
+            //  + "rtpjpegdepay latency=0 ! jpegdec ! videoconvert ! "
+            //  + "video/x-raw,format=BGRx ! "
+            //  + "appsink name=sink emit-signals=true max-buffers=1 drop=true sync=false";
+
+
+            // 테스트 용
             //        string pipelineDesc =
             //$"udpsrc port={udpPort} " +
             //"caps=application/x-rtp,media=video,encoding-name=H264,payload=96,clock-rate=90000 ! " +
