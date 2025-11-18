@@ -291,7 +291,7 @@ namespace Operation_Control_System.Services
                 InputArray.Create(_prevGray),
                 InputArray.Create(gray),
                 InputArray.Create(prevPts),
-                (InputOutputArray)OutputArray.Create(nextPtsMat),
+                InputOutputArray.Create(nextPtsMat),
                 OutputArray.Create(statusMat),
                 OutputArray.Create(errMat),
                 winSize: new Size(21, 21),
