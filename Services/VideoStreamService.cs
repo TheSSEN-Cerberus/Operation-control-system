@@ -1,11 +1,16 @@
 ﻿using Gst;
 using Gst.App;
+using OpenCvSharp;
+using OpenCvSharp;
 using System;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using System.Windows;
+using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using Debug = System.Diagnostics.Debug;
+using Size = OpenCvSharp.Size;
 
 namespace Operation_Control_System.Services
 {
@@ -15,6 +20,11 @@ namespace Operation_Control_System.Services
     /// </summary>
     public sealed class VideoStreamService : IDisposable
     {
+
+        private Mat? _prevGray = null;
+        private Mat? _prevStabilized = null;
+        private readonly object _cvLock = new();  // 스레드 안전
+
         private Pipeline? _pipeline;
         private AppSink? _appsink;
         private DispatcherTimer? _glibTimer;
@@ -122,7 +132,6 @@ namespace Operation_Control_System.Services
         /// </summary>
         private void OnNewSample(object sender, EventArgs args)
         {
-            //System.Diagnostics.Debug.WriteLine($"이미지 수신중");
             using var sample = _appsink!.PullSample();
             if (sample == null) return;
 
@@ -136,22 +145,55 @@ namespace Operation_Control_System.Services
 
             try
             {
-                // ✅ 프레임 복사 (UI 접근용)
+                // ---- [1] GStreamer BGRx 데이터 → byte[] ----
                 byte[] frameCopy = new byte[map.Data.Length];
                 System.Buffer.BlockCopy(map.Data, 0, frameCopy, 0, frameCopy.Length);
 
-                int stride = width * 4;
+                // ---- [2] byte[] → Mat(BGRA) (OpenCvSharp 4.11 방식) ----
+                Mat matBGRA = new Mat(height, width, MatType.CV_8UC4);
+                System.Runtime.InteropServices.Marshal.Copy(
+                    frameCopy, 0, matBGRA.Data, frameCopy.Length
+                );
 
-                // ✅ UI 스레드로 안전하게 전달
+                // ---- [3] BGRA → BGR ----
+                Mat matBGR = new Mat();
+                Cv2.CvtColor(matBGRA, matBGR, ColorConversionCodes.BGRA2BGR);
+
+                // ---- [4] 영상 안정화 ----
+                Mat stabilizedBGR;
+                lock (_cvLock)
+                {
+                    stabilizedBGR = StabilizeFrame(matBGR);
+                }
+
+                // ---- [5] BGR → BGRA ----
+                Mat stabilizedBGRA = new Mat();
+                Cv2.CvtColor(stabilizedBGR, stabilizedBGRA, ColorConversionCodes.BGR2BGRA);
+
+                // ---- [6] WPF BitmapSource 생성 ----
                 System.Windows.Application.Current?.Dispatcher.BeginInvoke(() =>
                 {
+                    // Mat → byte[] 변환
+                    int dataSize = stabilizedBGRA.Rows * stabilizedBGRA.Cols * stabilizedBGRA.ElemSize();
+                    byte[] outBytes = new byte[dataSize];
+                    System.Runtime.InteropServices.Marshal.Copy(
+                        stabilizedBGRA.Data,
+                        outBytes,
+                        0,
+                        dataSize
+                    );
+
+                    // stride = width * 4 (BGRA)
+                    int stride = width * 4;
+
                     var bmp = BitmapSource.Create(
                         width, height, 96, 96,
-                        System.Windows.Media.PixelFormats.Bgr32,
+                        PixelFormats.Bgra32,
                         null,
-                        frameCopy,
-                        stride);
-                    bmp.Freeze(); // MVVM에서도 안전히 전달 가능
+                        outBytes,
+                        stride
+                    );
+                    bmp.Freeze();
                     FrameArrived?.Invoke(bmp);
                 });
             }
@@ -159,7 +201,8 @@ namespace Operation_Control_System.Services
             {
                 sample.Buffer.Unmap(map);
             }
-            // ✅ FPS 계산 및 로그 출력
+
+            // FPS 계산
             _frameCount++;
             double elapsed = _fpsTimer.Elapsed.TotalSeconds;
             if (elapsed >= 1.0)
@@ -170,6 +213,8 @@ namespace Operation_Control_System.Services
                 _frameCount = 0;
             }
         }
+
+
 
         /// <summary>
         /// [5] 정지 및 해제
@@ -203,6 +248,109 @@ namespace Operation_Control_System.Services
                 System.Diagnostics.Debug.WriteLine($"[Stop ERROR] {ex.Message}");
             }
         }
+
+        /// <summary>
+        /// Optical Flow 기반 간단 영상 흔들림 보정
+        /// </summary>
+        private Mat StabilizeFrame(Mat frame)
+        {
+            Mat gray = new();
+            Cv2.CvtColor(frame, gray, ColorConversionCodes.BGR2GRAY);
+
+            // 최초 프레임이면 초기화
+            if (_prevGray == null)
+            {
+                _prevGray = gray.Clone();
+                return frame;
+            }
+
+            // ① 특징점 추출 (4.11에서는 mask 포함 8개 인수 필요)
+            Point2f[] prevPts = Cv2.GoodFeaturesToTrack(
+                _prevGray,
+                200,       // maxCorners
+                0.01,      // qualityLevel
+                30,        // minDistance
+                null,      // mask
+                3,         // blockSize
+                false,     // useHarris
+                0.04       // k
+            );
+
+            if (prevPts == null || prevPts.Length == 0)
+            {
+                _prevGray = gray.Clone();
+                return frame;
+            }
+
+            // ② Optical Flow 계산
+            Mat nextPtsMat = new Mat();
+            Mat statusMat = new Mat();
+            Mat errMat = new Mat();
+
+            Cv2.CalcOpticalFlowPyrLK(
+                InputArray.Create(_prevGray),
+                InputArray.Create(gray),
+                InputArray.Create(prevPts),
+                (InputOutputArray)OutputArray.Create(nextPtsMat),
+                OutputArray.Create(statusMat),
+                OutputArray.Create(errMat),
+                winSize: new Size(21, 21),
+                maxLevel: 3
+            );
+
+            // ③ Mat → 배열 변환 (4.11에서는 GetArray<T>() 사용 가능)
+            nextPtsMat.GetArray<Point2f>(out Point2f[] nextPts);
+            statusMat.GetArray<byte>(out byte[] status);
+            errMat.GetArray<float>(out float[] err);
+
+            // 좋은 점만 필터링
+            List<Point2f> goodPrev = new();
+            List<Point2f> goodNext = new();
+
+            for (int i = 0; i < status.Length; i++)
+            {
+                if (status[i] == 1)
+                {
+                    goodPrev.Add(prevPts[i]);
+                    goodNext.Add(nextPts[i]);
+                }
+            }
+
+            if (goodPrev.Count < 10)
+            {
+                _prevGray = gray.Clone();
+                return frame;
+            }
+
+            // ④ Affine Transform 계산
+            Mat transform = Cv2.EstimateAffine2D(
+                InputArray.Create(goodPrev.ToArray()),
+                InputArray.Create(goodNext.ToArray())
+            );
+
+            if (transform.Empty())
+            {
+                _prevGray = gray.Clone();
+                return frame;
+            }
+
+            // ⑤ 흔들림 보정 적용
+            Mat stabilized = new Mat();
+            Cv2.WarpAffine(
+                frame,
+                stabilized,
+                transform,
+                frame.Size(),
+                InterpolationFlags.Linear,
+                BorderTypes.Reflect101
+            );
+
+            _prevGray = gray.Clone();
+            return stabilized;
+        }
+
+
+
 
         public void Dispose() => Stop();
     }
