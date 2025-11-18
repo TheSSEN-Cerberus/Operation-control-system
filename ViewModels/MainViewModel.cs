@@ -69,7 +69,6 @@ namespace Operation_Control_System.ViewModels
         {
             // Control 상태 초기화
             Control.IsLaserOn = false;
-            Control.IsAutoFire = false;
             Control.IsAutoOperation = false;
             Control.TrackedTargetId = null;
             Control.CanFire = false;

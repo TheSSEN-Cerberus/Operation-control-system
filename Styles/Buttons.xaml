@@ -1,18 +1,22 @@
 ﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
+    <!-- 컬러 리소스 병합 -->
     <ResourceDictionary.MergedDictionaries>
         <ResourceDictionary Source="Colors.xaml"/>
     </ResourceDictionary.MergedDictionaries>
-    <!-- Glow Effect -->
+
+    <!-- 🔥 Glow Effect -->
     <DropShadowEffect x:Key="ButtonGlowEffect"
                       BlurRadius="15"
                       ShadowDepth="0"
                       Color="#4E9F3D"
                       Opacity="0.6"/>
 
-    <!-- Tactical Button -->
-    <Style TargetType="Button">
+    <!-- ========================================================= -->
+    <!--                    BUTTON 기본 스타일                    -->
+    <!-- ========================================================= -->
+    <Style x:Key="BaseButtonStyle" TargetType="Button">
         <Setter Property="Background" Value="{StaticResource AccentBrush}"/>
         <Setter Property="Foreground" Value="White"/>
         <Setter Property="Margin" Value="4"/>
@@ -21,6 +25,7 @@
         <Setter Property="BorderThickness" Value="1.5"/>
         <Setter Property="Cursor" Value="Hand"/>
         <Setter Property="Effect" Value="{StaticResource ButtonGlowEffect}"/>
+
         <Setter Property="Template">
             <Setter.Value>
                 <ControlTemplate TargetType="Button">
@@ -28,42 +33,131 @@
                             Background="{TemplateBinding Background}"
                             BorderBrush="{TemplateBinding BorderBrush}"
                             BorderThickness="{TemplateBinding BorderThickness}">
-                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        <ContentPresenter HorizontalAlignment="Center"
+                                          VerticalAlignment="Center"/>
                     </Border>
                 </ControlTemplate>
             </Setter.Value>
         </Setter>
 
         <Style.Triggers>
+
+            <!-- Hover -->
             <Trigger Property="IsMouseOver" Value="True">
                 <Setter Property="Background" Value="#65B741"/>
             </Trigger>
+
+            <!-- Pressed -->
             <Trigger Property="IsPressed" Value="True">
                 <Setter Property="Background" Value="#2F6C2D"/>
             </Trigger>
 
-            <!-- 🔸 비활성화 상태 -->
+            <!-- Disabled -->
             <Trigger Property="IsEnabled" Value="False">
                 <Setter Property="Background" Value="#444"/>
-                <!-- 회색 -->
                 <Setter Property="Foreground" Value="#AAA"/>
                 <Setter Property="Effect" Value="{x:Null}"/>
-                <!-- Glow 제거 -->
                 <Setter Property="Cursor" Value="Arrow"/>
             </Trigger>
+
         </Style.Triggers>
     </Style>
 
-    <!-- Emergency Stop Button -->
-    <Style x:Key="EmergencyButtonStyle" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+    <!-- 기본 Button을 전역 Button으로 사용하도록 설정 -->
+    <Style TargetType="Button" BasedOn="{StaticResource BaseButtonStyle}"/>
+
+
+    <!-- ========================================================= -->
+    <!--                 EMERGENCY STOP BUTTON 스타일              -->
+    <!-- ========================================================= -->
+    <Style x:Key="EmergencyButtonStyle" TargetType="Button" BasedOn="{StaticResource BaseButtonStyle}">
         <Setter Property="Background" Value="{StaticResource WarningBrush}"/>
         <Setter Property="Foreground" Value="White"/>
-        <Setter Property="FontSize" Value="16"/>
+        <Setter Property="FontSize" Value="20"/>
         <Setter Property="BorderBrush" Value="#7A0D0D"/>
+
         <Setter Property="Effect">
             <Setter.Value>
-                <DropShadowEffect BlurRadius="25" Color="Red" ShadowDepth="0" Opacity="0.8"/>
+                <DropShadowEffect BlurRadius="25"
+                                  Color="Red"
+                                  ShadowDepth="0"
+                                  Opacity="0.8"/>
             </Setter.Value>
         </Setter>
+    </Style>
+
+
+    <!-- ========================================================= -->
+    <!--                 TOGGLE BUTTON 스타일 (핵심)              -->
+    <!-- ========================================================= -->
+    <Style x:Key="TacticalToggleButtonStyle" TargetType="ToggleButton">
+        <!-- 기본 속성 -->
+        <Setter Property="Background" Value="{StaticResource AccentBrush}" />
+        <Setter Property="Foreground" Value="White" />
+        <Setter Property="Margin" Value="4" />
+        <Setter Property="Padding" Value="8,4" />
+        <Setter Property="BorderBrush" Value="{StaticResource BorderBrushDark}" />
+        <Setter Property="BorderThickness" Value="1.5" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="Effect" Value="{StaticResource ButtonGlowEffect}" />
+
+        <!-- 템플릿 -->
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ToggleButton">
+                    <Border CornerRadius="4"
+                        Background="{TemplateBinding Background}"
+                        BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="{TemplateBinding BorderThickness}">
+                        <ContentPresenter HorizontalAlignment="Center"
+                                      VerticalAlignment="Center"/>
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+
+        <Style.Triggers>
+
+            <!-- ⭐ Checked(ON) 상태 -->
+            <Trigger Property="IsChecked" Value="True">
+                <Setter Property="Background" Value="#4E9F3D"/>
+                <Setter Property="Effect">
+                    <Setter.Value>
+                        <DropShadowEffect BlurRadius="20"
+                                      Color="#4E9F3D"
+                                      ShadowDepth="0"
+                                      Opacity="0.8"/>
+                    </Setter.Value>
+                </Setter>
+            </Trigger>
+
+            <!-- ⭐ Checked + Hover -->
+            <MultiTrigger>
+                <MultiTrigger.Conditions>
+                    <Condition Property="IsChecked" Value="True"/>
+                    <Condition Property="IsMouseOver" Value="True"/>
+                </MultiTrigger.Conditions>
+                <Setter Property="Background" Value="#65B741"/>
+            </MultiTrigger>
+
+            <!-- Hover (OFF) -->
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Background" Value="#65B741"/>
+            </Trigger>
+
+            <!-- Pressed -->
+            <Trigger Property="IsPressed" Value="True">
+                <Setter Property="Background" Value="#2F6C2D"/>
+            </Trigger>
+
+            <!-- Disabled -->
+            <Trigger Property="IsEnabled" Value="False">
+                <Setter Property="Background" Value="#444"/>
+                <Setter Property="Foreground" Value="#AAA"/>
+                <Setter Property="Effect" Value="{x:Null}"/>
+                <Setter Property="Cursor" Value="Arrow"/>
+            </Trigger>
+
+        </Style.Triggers>
     </Style>
 </ResourceDictionary>

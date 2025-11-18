@@ -44,8 +44,6 @@
                     <Image Source="{Binding VideoStream.CurrentFrame}" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Top"/>
                     <Ellipse Width="6" Height="6" Fill="Red"
          Stroke="Black" StrokeThickness="1"
-         Canvas.Left="{Binding VideoStream.CenterX}"
-         Canvas.Top="{Binding VideoStream.CenterY}"
          Panel.ZIndex="99"/>
                     <!-- 🎞 로딩 애니메이션 -->
                 <Viewbox Stretch="Uniform"
@@ -82,22 +80,15 @@
                                     <Border BorderBrush="{Binding BoxColor}" BorderThickness="2"
                                     Width="{Binding Width}" Height="{Binding Height}"
                                     Background="#20FF0000">
-                                    <Border.InputBindings>
-                                        <MouseBinding Gesture="LeftClick" Command="{Binding ClickCommand}" />
-                                    </Border.InputBindings>
-                                    <StackPanel>
-                                    <TextBlock Text="{Binding Id}" Foreground="{StaticResource HUDYellow}" FontWeight="Bold"/>
-                                    <TextBlock Text="{Binding ClassLabel}" Foreground="White" FontSize="10"/>
-                                </StackPanel>
-                            </Border>
-                                <!-- 🟢 BBox 중심점 -->
-                                <Ellipse Width="4" Height="4"
-                                     Stroke="Black" StrokeThickness="1"
-                                     Fill="Lime"
-                                     Canvas.Left="{Binding CenterX}"
-                                     Canvas.Top="{Binding CenterY}">
-                                </Ellipse>
-                                    </Canvas>
+                                        <Border.InputBindings>
+                                            <MouseBinding Gesture="LeftClick" Command="{Binding ClickCommand}" />
+                                        </Border.InputBindings>
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding Id}" Foreground="{StaticResource HUDYellow}" FontWeight="Bold"/>
+                                            <TextBlock Text="{Binding ClassLabel}" Foreground="White" FontSize="10"/>
+                                        </StackPanel>
+                                    </Border>
+                                </Canvas>
                             </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
@@ -240,21 +231,55 @@
 
             <!-- 제어 모드 -->
             <GroupBox Header="CONTROL MODE" Grid.Row="1" Margin="0,0,0,5">
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                    <StackPanel Orientation="Horizontal" Margin="5">
-                        <TextBlock Text="레이저:" Margin="5"/>
-                        <ToggleButton Content="{Binding Control.LaserToggleText}" IsChecked="{Binding Control.IsLaserOn, Mode=TwoWay}" Width="80" Height="25"/>
+                <Grid Margin="10">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <!-- 🔹 레프트 / 레이저 제어 -->
+                    <StackPanel Grid.Column="0"
+                    Orientation="Horizontal"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Margin="0,0,20,0">
+
+                        <TextBlock Text="레이저:"
+                       Margin="5"
+                       VerticalAlignment="Center"
+                       FontWeight="SemiBold"/>
+
+                        <ToggleButton 
+                          Style="{StaticResource TacticalToggleButtonStyle}"
+                          Content="{Binding Control.LaserToggleText}"
+                          IsChecked="{Binding Control.IsLaserOn, Mode=TwoWay}"
+                          FontSize="20"
+                          Width="135" Height="40"
+                          Margin="5"/>
                     </StackPanel>
-                    <StackPanel Orientation="Horizontal" Margin="5">
-                        <TextBlock Text="격발:" Margin="5"/>
-                        <ToggleButton Content="{Binding Control.FireModeText}" IsChecked="{Binding Control.IsAutoFire, Mode=TwoWay}" Width="80" Height="25"/>
+
+                    <!-- 🔹 라이트 / 운용 모드 (수동/자동 전환) -->
+                    <StackPanel Grid.Column="1"
+                    Orientation="Horizontal"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Margin="20,0,0,0">
+
+                        <TextBlock Text="운용:"
+                       Margin="5"
+                       VerticalAlignment="Center"
+                       FontWeight="SemiBold"/>
+
+                        <ToggleButton Content="{Binding Control.OperationModeText}"
+                                      Style="{StaticResource TacticalToggleButtonStyle}"
+                          IsChecked="{Binding Control.IsAutoOperation, Mode=TwoWay}"
+                          Width="135" Height="40"
+                          FontSize="20"
+                          Margin="5"/>
                     </StackPanel>
-                    <StackPanel Orientation="Horizontal" Margin="5">
-                        <TextBlock Text="운용:" Margin="5"/>
-                        <ToggleButton Content="{Binding Control.OperationModeText}" IsChecked="{Binding Control.IsAutoOperation, Mode=TwoWay}" Width="80" Height="25"/>
-                    </StackPanel>
-                </StackPanel>
+                </Grid>
             </GroupBox>
+
 
             <!-- 표적 상태 -->
             <GroupBox Header="SHOTTING CONTROL" Grid.Row="2" Margin="0,0,0,5">
@@ -262,18 +287,17 @@
                     <UniformGrid Columns="2" Margin="10">
                         <Button Content="격발"
                         Command="{Binding Control.SendFireCommand}"
-                        IsEnabled="{Binding Control.CanFire}"
-                        FontWeight="Bold"
-                        Height="90"
+                        FontSize="20"
+                        Height="40"
                         Width="135"
                         Margin="5"/>
 
 
                     <!-- 🔸 오른쪽: 비상정지 버튼 -->
-                        <Button Content="⚠ 비상정지"
+                        <Button Content="비상정지"
                         Style="{StaticResource EmergencyButtonStyle}"
                         Command="{Binding EmergencyStopCommand}"
-                        Width="135" Height="90"/>
+                        Width="135" Height="40"/>
                 </UniformGrid>
             </GroupBox>
 

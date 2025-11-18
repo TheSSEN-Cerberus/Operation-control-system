@@ -82,28 +82,7 @@ namespace Operation_Control_System.ViewModels
         /// </summary>
         public string LaserToggleText => IsLaserOn ? "ON" : "OFF";
 
-        // --- 격발 모드 ---
-        private bool _isAutoFire;
-        /// <summary>
-        /// 자동 격발 모드 여부를 나타냅니다. (true: 자동, false: 수동)
-        /// </summary>
-        public bool IsAutoFire
-        {
-            get => _isAutoFire;
-            set
-            {
-                if (SetProperty(ref _isAutoFire, value))
-                {
-                    OnPropertyChanged(nameof(FireModeText));
-                    _ = SendFireModeChange(value); // 격발 모드 변경 명령 전송
-                    SetFireReady(value);
-                }
-            }
-        }
-        /// <summary>
-        /// 격발 모드에 따른 텍스트를 반환합니다.
-        /// </summary>
-        public string FireModeText => IsAutoFire ? "자동" : "수동";
+
 
         // --- 운용 모드 ---
         /// <summary>
@@ -321,7 +300,7 @@ namespace Operation_Control_System.ViewModels
         /// </summary>
         private void UpdateCanFire()
         {
-            CanFire = _fireReady && IsAutoFire == false;
+            CanFire = _fireReady;
         }
 
         /// <summary>
@@ -347,11 +326,11 @@ namespace Operation_Control_System.ViewModels
         /// </summary>
         private void TryFireCommand()
         {
-            if (!CanFire)
-            {
-                Console.WriteLine("[Control] Fire command ignored (not ready).");
-                return;
-            }
+            //if (!CanFire)
+            //{
+            //    Console.WriteLine("[Control] Fire command ignored (not ready).");
+            //    return;
+            //}
             OnSendFire(null);
         }
 
@@ -465,11 +444,11 @@ namespace Operation_Control_System.ViewModels
         /// <param name="param">현재 사용되지 않음</param>
         private async void OnSendFire(object? param)
         {
-            if (!CanFire)
-            {
-                Debug.WriteLine("[Control] ⚠️ Fire attempt ignored (not ready).");
-                return;
-            }
+            //if (!CanFire)
+            //{
+            //    Debug.WriteLine("[Control] ⚠️ Fire attempt ignored (not ready).");
+            //    return;
+            //}
             try
             {
                 await _networkService.SendAsync(new Message<FireCommandData>
@@ -529,27 +508,7 @@ namespace Operation_Control_System.ViewModels
             }
         }
 
-        /// <summary>
-        /// 격발 모드 변경 명령을 비동기적으로 전송합니다.
-        /// </summary>
-        /// <param name="isAuto">자동 격발 모드 여부</param>
-        /// <returns>비동기 작업</returns>
-        private async Task SendFireModeChange(bool isAuto)
-        {
-            try
-            {
-                await _networkService.SendAsync(new Message<FireSelectorModeData>
-                {
-                    Type = "fire_mode",
-                    Data = new FireSelectorModeData { Mode = isAuto ? 1 : 0 } // 1: 자동, 0: 수동
-                });
-                Debug.WriteLine($"[Control] Fire mode {(isAuto ? "AUTO" : "MANUAL")} sent.");
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"[Control] FireMode send error: {ex.Message}");
-            }
-        }
+
 
         /// <summary>
         /// 운용 모드 변경 명령을 비동기적으로 전송합니다.
