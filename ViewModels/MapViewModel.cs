@@ -123,17 +123,25 @@ namespace Operation_Control_System.ViewModels
 
         private void OnStatusReceived(StatusData data)
         {
-            if(data.Yaw >= 0)
-                _shared.Heading = data.Yaw;
-            else
-            {
-                _shared.Heading = 360 + data.Yaw;
-            }
+            double yaw = data.Yaw;    // -180 ~ +180
+
+            // 1) -180~180 -> 0~360 (East=0, CCW)
+            double yawE = (yaw + 360.0) % 360.0;
+
+            // 2) CCW -> CW (좌우 반전)
+            double yawCW = (360.0 - yawE) % 360.0;
+
+            // 3) East=0 -> North=0 (지도 기준으로 회전축 변환)
+            _shared.Heading = (yawCW + 90.0) % 360.0;
             if (!_headingInitialized)
             {
                 _headingInitialized = true;
                 _robotHeading = _shared.Heading;
+                Debug.WriteLine("[Init] heading: ", _robotHeading, " yaw:", data.Yaw);
+
             }
+            Debug.WriteLine("[Update] heading: ", _robotHeading, " yaw:", data.Yaw);
+
 
             Application.Current?.Dispatcher?.BeginInvoke(() =>
             {

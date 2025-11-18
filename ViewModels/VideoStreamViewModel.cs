@@ -165,7 +165,7 @@ namespace Operation_Control_System.ViewModels
         // ✅ 일정 시간 미수신 시 Clear
         private void CheckBBoxTimeout()
         {
-            if ((DateTime.UtcNow - _lastBBoxTime).TotalMilliseconds > 300)
+            if ((DateTime.UtcNow - _lastBBoxTime).TotalMilliseconds > 1000)
             {
                 App.Current?.Dispatcher?.Invoke(() => _shared.BBoxes.Clear());
             }

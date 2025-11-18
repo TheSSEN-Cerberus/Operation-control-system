@@ -267,8 +267,8 @@ namespace Operation_Control_System.Services
             // ① 특징점 추출 (4.11에서는 mask 포함 8개 인수 필요)
             Point2f[] prevPts = Cv2.GoodFeaturesToTrack(
                 _prevGray,
-                200,       // maxCorners
-                0.01,      // qualityLevel
+                300,       // maxCorners
+                0.02,      // qualityLevel
                 30,        // minDistance
                 null,      // mask
                 3,         // blockSize
@@ -323,9 +323,13 @@ namespace Operation_Control_System.Services
             }
 
             // ④ Affine Transform 계산
+            Mat inliers = new Mat();
             Mat transform = Cv2.EstimateAffine2D(
                 InputArray.Create(goodPrev.ToArray()),
-                InputArray.Create(goodNext.ToArray())
+                InputArray.Create(goodNext.ToArray()),
+                inliers,
+                RobustEstimationAlgorithms.RANSAC,
+                ransacReprojThreshold: 3.0
             );
 
             if (transform.Empty())
