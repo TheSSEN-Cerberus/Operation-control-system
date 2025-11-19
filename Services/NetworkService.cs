@@ -29,7 +29,6 @@ namespace Operation_Control_System.Services
         public event Action<StatusData>? StatusReceived;
         public event Action<FireReadyData>? FireReadyReceived;
         public event Action<BBoxData>? BBoxReceived;
-        public event Action<TrackTargetData>? TrackTargetReceived;
         public event Action<FireDoneData>? FireDoneReceived;
 
         // =====================
@@ -143,14 +142,6 @@ namespace Operation_Control_System.Services
                         }
                         break;
 
-                    case "track_target":
-                        var trackMsg = JsonSerializer.Deserialize<Message<TrackTargetData>>(json);
-                        if (trackMsg?.Data != null)
-                        {
-                            TrackTargetReceived?.Invoke(trackMsg.Data);
-                            Debug.WriteLine($"[Network] TrackTarget Received (ID={trackMsg.Data})");
-                        }
-                        break;
                     case "fire_done":
                         var fireDoneMsg = JsonSerializer.Deserialize<Message<FireDoneData>>(json);
                         if (fireDoneMsg?.Data != null)
@@ -205,7 +196,6 @@ namespace Operation_Control_System.Services
             StatusReceived = null;
             FireReadyReceived = null;
             BBoxReceived = null;
-            TrackTargetReceived = null;
             _ = StopAsync();
             _watchdog.Dispose();
         }

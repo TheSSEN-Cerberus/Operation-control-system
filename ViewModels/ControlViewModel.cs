@@ -48,7 +48,6 @@ namespace Operation_Control_System.ViewModels
 
             // ✅ 네트워크 서비스 이벤트 구독
             _networkService.FireReadyReceived += OnFireReadyReceived;
-            _networkService.TrackTargetReceived += OnTrackTargetReceived;
 
             _ = _bluetoothService.StartAutoConnectAsync();
 
@@ -472,19 +471,7 @@ namespace Operation_Control_System.ViewModels
             }
         }
 
-        /// <summary>
-        /// 보드로부터 추적 타겟 정보를 수신했을 때 실행됩니다. (수동 모드 제외)
-        /// </summary>
-        /// <param name="data">추적 타겟 데이터</param>
-        private void OnTrackTargetReceived(TrackTargetData data)
-        {
-            if (IsAutoOperation == false) // 수동 모드에서는 타겟 추적 정보를 무시
-            {
-                return;
-            }
-            TrackedTargetId = data.TargetId; // 추적 타겟 ID 업데이트
-            Debug.WriteLine($"[Control] 🎯 Tracked Target ID updated from board: {data.TargetId}");
-        }
+
 
         /// <summary>
         /// 레이저 ON/OFF 명령을 비동기적으로 전송합니다.
