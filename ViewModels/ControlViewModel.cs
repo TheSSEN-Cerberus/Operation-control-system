@@ -61,7 +61,7 @@ namespace Operation_Control_System.ViewModels
 
 
         // --- 레이저 제어 ---
-        private bool _isLaserOn;
+        private bool _isLaserOn = true;
         /// <summary>
         /// 레이저 ON/OFF 상태를 나타냅니다.
         /// </summary>
