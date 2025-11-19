@@ -81,6 +81,7 @@ namespace Operation_Control_System.ViewModels
             _networkService = networkService;
             _networkService.StatusReceived += OnStatusReceived;
             _networkService.FireReadyReceived += OnFireReadyReceived;
+            _networkService.FireDoneReceived += OnFireDoneReceived;
 
             MapCenter = new PointLatLng(Latitude, Longitude);
             SetStartPositionCommand = new RelayCommand(OnSetStartPosition);
@@ -119,6 +120,24 @@ namespace Operation_Control_System.ViewModels
         {
             if (_mapControl != null)
                 _mapControl.Position = MapCenter;
+        }
+
+        private void OnFireDoneReceived(FireDoneData data)
+        {
+            Application.Current?.Dispatcher?.BeginInvoke(() =>
+            {
+                if (_targetMarkers.TryGetValue(data.TargetId, out var marker))
+                {
+                    marker.Shape = CreateXShape();
+                    marker.ZIndex = 5;
+
+                    Debug.WriteLine($"[Map] ❌ Target {data.TargetId} marked as DONE");
+                }
+                else
+                {
+                    Debug.WriteLine($"[Map] ⚠ Target {data.TargetId} not found for DONE marking");
+                }
+            });
         }
 
         private void OnStatusReceived(StatusData data)
@@ -282,6 +301,7 @@ namespace Operation_Control_System.ViewModels
         }
 
 
+
         private PointLatLng CalculateTargetPoint(PointLatLng origin, double headingDeg, double distanceMeters)
         {
             const double EarthRadius = 6378137.0; // m
@@ -312,6 +332,18 @@ namespace Operation_Control_System.ViewModels
                                             Math.Cos(distanceCm / EarthRadius) - Math.Sin(lat1) * Math.Sin(lat2));
 
             return (lat2 * 180.0 / Math.PI, lon2 * 180.0 / Math.PI);
+        }
+
+
+        private FrameworkElement CreateXShape()
+        {
+            return new Path
+            {
+                Stroke = Brushes.Red,
+                StrokeThickness = 3,
+                Data = Geometry.Parse("M -6 -6 L 6 6 M -6 6 L 6 -6"),
+                RenderTransform = new TranslateTransform(-6, -6)
+            };
         }
 
         private void OnSetStartPosition()

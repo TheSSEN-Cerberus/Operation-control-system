@@ -30,6 +30,7 @@ namespace Operation_Control_System.Services
         public event Action<FireReadyData>? FireReadyReceived;
         public event Action<BBoxData>? BBoxReceived;
         public event Action<TrackTargetData>? TrackTargetReceived;
+        public event Action<FireDoneData>? FireDoneReceived;
 
         // =====================
         // 생성자
@@ -148,6 +149,14 @@ namespace Operation_Control_System.Services
                         {
                             TrackTargetReceived?.Invoke(trackMsg.Data);
                             Debug.WriteLine($"[Network] TrackTarget Received (ID={trackMsg.Data})");
+                        }
+                        break;
+                    case "fire_done":
+                        var fireDoneMsg = JsonSerializer.Deserialize<Message<FireDoneData>>(json);
+                        if (fireDoneMsg?.Data != null)
+                        {
+                            FireDoneReceived?.Invoke(fireDoneMsg.Data);
+                            Debug.WriteLine($"[Network] FireDoneReceived (ID={fireDoneMsg.Data})");
                         }
                         break;
 
