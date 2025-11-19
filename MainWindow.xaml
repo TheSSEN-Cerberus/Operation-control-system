@@ -121,27 +121,7 @@
                                 <DataGridTextColumn Header="Priority" Binding="{Binding Priority}" Width="70"/>
                                 <DataGridTextColumn Header="Target Lat" Binding="{Binding TargetLat, StringFormat={}{0:F6}}" Width="120"/>
                                 <DataGridTextColumn Header="Target Lon" Binding="{Binding TargetLon, StringFormat={}{0:F6}}" Width="120"/>
-
-
-                                <!-- Control 버튼 컬럼 -->
-                                <DataGridTemplateColumn Header="Control" Width="*">
-                                    <DataGridTemplateColumn.CellTemplate>
-                                        <DataTemplate>
-                                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" >
-                                                <Button Content="추적"
-                                        Padding="6,2"
-                                        FontSize="12"
-                                        Command="{Binding DataContext.VideoStream.TrackCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                        CommandParameter="{Binding Id}"/>
-                                                <Button Content="추적해제"
-                                        Padding="6,2"
-                                        FontSize="12"
-                                        Command="{Binding DataContext.VideoStream.UntrackCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                        CommandParameter="{Binding Id}"/>
-                                            </StackPanel>
-                                        </DataTemplate>
-                                    </DataGridTemplateColumn.CellTemplate>
-                                </DataGridTemplateColumn>
+                               
 
                             </DataGrid.Columns>
                         </DataGrid>

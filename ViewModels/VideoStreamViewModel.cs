@@ -118,43 +118,45 @@ namespace Operation_Control_System.ViewModels
             if (CurrentFrame == null || bboxData.Objects == null)
                 return;
 
-
             _lastBBoxTime = DateTime.UtcNow;
             int frameWidth = CurrentFrame.PixelWidth;
             int frameHeight = CurrentFrame.PixelHeight;
 
             App.Current?.Dispatcher?.Invoke(() =>
             {
-                // ① 현재 수신된 ID 목록
-                var newIds = bboxData.Objects.Select(o => o.Id).ToHashSet();
+                // 🔥 1. class == 0 만 남기기
+                var filtered = bboxData.Objects
+                    .Where(o => o.Class == "0")
+                    .ToList();
 
-                // ② 기존 중, 새 데이터에 없는 ID는 제거
+                // 🔥 2. tank로 클래스명 변경
+                foreach (var obj in filtered)
+                    obj.Class = "tank";
+
+                // 🔥 3. 기존 bbox 중 filtered에 없는 것은 제거
+                var newIds = filtered.Select(o => o.Id).ToHashSet();
+
                 for (int i = _shared.BBoxes.Count - 1; i >= 0; i--)
                 {
                     if (!newIds.Contains(_shared.BBoxes[i].Id))
                         _shared.BBoxes.RemoveAt(i);
                 }
 
-                // ③ 새로 들어온/기존 객체 갱신
-                foreach (var model in bboxData.Objects)
+                // 🔥 4. 새 데이터 삽입 or 업데이트
+                foreach (var model in filtered)
                 {
                     var existing = _shared.BBoxes.FirstOrDefault(b => b.Id == model.Id);
                     if (existing != null)
                     {
-                        // 좌표, 색상 업데이트
                         existing.UpdatePos(model, frameWidth, frameHeight);
                         existing.UpdateColor();
                     }
                     else
                     {
                         var bboxVm = new BBoxViewModel(model, frameWidth, frameHeight);
-                        // 새 객체 추가
                         _shared.BBoxes.Add(bboxVm);
                     }
                 }
-
-                // ④ 선택된 객체 정보 갱신 (예시)
-                SelectedBBoxInfo = $"탐지 객체 수: {_shared.BBoxes.Count}";
             });
         }
 
