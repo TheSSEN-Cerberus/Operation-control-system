@@ -127,11 +127,10 @@ namespace Operation_Control_System.Services
             _glibTimer.Start();
         }
 
-        /// <summary>
-        /// [4] AppSink 프레임 수신 콜백
-        /// </summary>
+        // 안정화 X 버전
         private void OnNewSample(object sender, EventArgs args)
         {
+            //System.Diagnostics.Debug.WriteLine($"이미지 수신중");
             using var sample = _appsink!.PullSample();
             if (sample == null) return;
 
@@ -145,55 +144,22 @@ namespace Operation_Control_System.Services
 
             try
             {
-                // ---- [1] GStreamer BGRx 데이터 → byte[] ----
+                // ✅ 프레임 복사 (UI 접근용)
                 byte[] frameCopy = new byte[map.Data.Length];
                 System.Buffer.BlockCopy(map.Data, 0, frameCopy, 0, frameCopy.Length);
 
-                // ---- [2] byte[] → Mat(BGRA) (OpenCvSharp 4.11 방식) ----
-                Mat matBGRA = new Mat(height, width, MatType.CV_8UC4);
-                System.Runtime.InteropServices.Marshal.Copy(
-                    frameCopy, 0, matBGRA.Data, frameCopy.Length
-                );
+                int stride = width * 4;
 
-                // ---- [3] BGRA → BGR ----
-                Mat matBGR = new Mat();
-                Cv2.CvtColor(matBGRA, matBGR, ColorConversionCodes.BGRA2BGR);
-
-                // ---- [4] 영상 안정화 ----
-                Mat stabilizedBGR;
-                lock (_cvLock)
-                {
-                    stabilizedBGR = StabilizeFrame(matBGR);
-                }
-
-                // ---- [5] BGR → BGRA ----
-                Mat stabilizedBGRA = new Mat();
-                Cv2.CvtColor(stabilizedBGR, stabilizedBGRA, ColorConversionCodes.BGR2BGRA);
-
-                // ---- [6] WPF BitmapSource 생성 ----
+                // ✅ UI 스레드로 안전하게 전달
                 System.Windows.Application.Current?.Dispatcher.BeginInvoke(() =>
                 {
-                    // Mat → byte[] 변환
-                    int dataSize = stabilizedBGRA.Rows * stabilizedBGRA.Cols * stabilizedBGRA.ElemSize();
-                    byte[] outBytes = new byte[dataSize];
-                    System.Runtime.InteropServices.Marshal.Copy(
-                        stabilizedBGRA.Data,
-                        outBytes,
-                        0,
-                        dataSize
-                    );
-
-                    // stride = width * 4 (BGRA)
-                    int stride = width * 4;
-
                     var bmp = BitmapSource.Create(
                         width, height, 96, 96,
-                        PixelFormats.Bgra32,
+                        System.Windows.Media.PixelFormats.Bgr32,
                         null,
-                        outBytes,
-                        stride
-                    );
-                    bmp.Freeze();
+                        frameCopy,
+                        stride);
+                    bmp.Freeze(); // MVVM에서도 안전히 전달 가능
                     FrameArrived?.Invoke(bmp);
                 });
             }
@@ -201,8 +167,7 @@ namespace Operation_Control_System.Services
             {
                 sample.Buffer.Unmap(map);
             }
-
-            // FPS 계산
+            // ✅ FPS 계산 및 로그 출력
             _frameCount++;
             double elapsed = _fpsTimer.Elapsed.TotalSeconds;
             if (elapsed >= 1.0)
@@ -213,6 +178,92 @@ namespace Operation_Control_System.Services
                 _frameCount = 0;
             }
         }
+        /// <summary>
+        /// [4] AppSink 프레임 수신 콜백 (안정화 버전)
+        /// </summary>
+        //private void OnNewSample(object sender, EventArgs args)
+        //{
+        //    using var sample = _appsink!.PullSample();
+        //    if (sample == null) return;
+
+        //    var caps = sample.Caps;
+        //    var s = caps.GetStructure(0);
+        //    int width = (int)s.GetValue("width").Val;
+        //    int height = (int)s.GetValue("height").Val;
+
+        //    if (!sample.Buffer.Map(out MapInfo map, MapFlags.Read))
+        //        return;
+
+        //    try
+        //    {
+        //        // ---- [1] GStreamer BGRx 데이터 → byte[] ----
+        //        byte[] frameCopy = new byte[map.Data.Length];
+        //        System.Buffer.BlockCopy(map.Data, 0, frameCopy, 0, frameCopy.Length);
+
+        //        // ---- [2] byte[] → Mat(BGRA) (OpenCvSharp 4.11 방식) ----
+        //        Mat matBGRA = new Mat(height, width, MatType.CV_8UC4);
+        //        System.Runtime.InteropServices.Marshal.Copy(
+        //            frameCopy, 0, matBGRA.Data, frameCopy.Length
+        //        );
+
+        //        // ---- [3] BGRA → BGR ----
+        //        Mat matBGR = new Mat();
+        //        Cv2.CvtColor(matBGRA, matBGR, ColorConversionCodes.BGRA2BGR);
+
+        //        // ---- [4] 영상 안정화 ----
+        //        Mat stabilizedBGR;
+        //        lock (_cvLock)
+        //        {
+        //            stabilizedBGR = StabilizeFrame(matBGR);
+        //        }
+
+        //        // ---- [5] BGR → BGRA ----
+        //        Mat stabilizedBGRA = new Mat();
+        //        Cv2.CvtColor(stabilizedBGR, stabilizedBGRA, ColorConversionCodes.BGR2BGRA);
+
+        //        // ---- [6] WPF BitmapSource 생성 ----
+        //        System.Windows.Application.Current?.Dispatcher.BeginInvoke(() =>
+        //        {
+        //            // Mat → byte[] 변환
+        //            int dataSize = stabilizedBGRA.Rows * stabilizedBGRA.Cols * stabilizedBGRA.ElemSize();
+        //            byte[] outBytes = new byte[dataSize];
+        //            System.Runtime.InteropServices.Marshal.Copy(
+        //                stabilizedBGRA.Data,
+        //                outBytes,
+        //                0,
+        //                dataSize
+        //            );
+
+        //            // stride = width * 4 (BGRA)
+        //            int stride = width * 4;
+
+        //            var bmp = BitmapSource.Create(
+        //                width, height, 96, 96,
+        //                PixelFormats.Bgra32,
+        //                null,
+        //                outBytes,
+        //                stride
+        //            );
+        //            bmp.Freeze();
+        //            FrameArrived?.Invoke(bmp);
+        //        });
+        //    }
+        //    finally
+        //    {
+        //        sample.Buffer.Unmap(map);
+        //    }
+
+        //    // FPS 계산
+        //    _frameCount++;
+        //    double elapsed = _fpsTimer.Elapsed.TotalSeconds;
+        //    if (elapsed >= 1.0)
+        //    {
+        //        double fps = _frameCount / elapsed;
+        //        Debug.WriteLine($"[VideoStream] FPS: {fps:F1}");
+        //        _fpsTimer.Restart();
+        //        _frameCount = 0;
+        //    }
+        //}
 
 
 
