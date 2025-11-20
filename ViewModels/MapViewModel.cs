@@ -159,7 +159,7 @@ namespace Operation_Control_System.ViewModels
                 Debug.WriteLine("[Init] heading: ", _robotHeading, " yaw:", data.Yaw);
 
             }
-            Debug.WriteLine("[Update] heading: ", _robotHeading, " yaw:", data.Yaw);
+            //Debug.WriteLine("[Update] heading: ", _robotHeading, " yaw:", data.Yaw);
 
 
             Application.Current?.Dispatcher?.BeginInvoke(() =>
