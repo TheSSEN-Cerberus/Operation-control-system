@@ -39,9 +39,9 @@
                     <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
 
-                <Grid Grid.Row="0">
+                <Grid Grid.Row="0" Width="640" Height="480" HorizontalAlignment="Center">
 
-                    <Image Source="{Binding VideoStream.CurrentFrame}" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Top"/>
+                    <Image Source="{Binding VideoStream.CurrentFrame}" Width="640" Height="480" Stretch="Fill" HorizontalAlignment="Center" VerticalAlignment="Top"/>
                     <Ellipse Width="6" Height="6" Fill="Red"
          Stroke="Black" StrokeThickness="1"
          Panel.ZIndex="99"/>
