@@ -116,7 +116,7 @@
                             </DataGrid.Resources>
                             <DataGrid.Columns>
                                 <DataGridTextColumn Header="ID" Binding="{Binding Id}" Width="70" />
-                                <DataGridTextColumn Header="Class" Binding="{Binding ClassLabel}" Width="70"/>
+                                <DataGridTextColumn Header="Class" Binding="{Binding Class}" Width="70"/>
                                 <DataGridTextColumn Header="Conf" Binding="{Binding Confidence, StringFormat={}{0:P1}}" Width="70"/>
                                 <DataGridTextColumn Header="Priority" Binding="{Binding Priority}" Width="70"/>
                                 <DataGridTextColumn Header="Target Lat" Binding="{Binding TargetLat, StringFormat={}{0:F6}}" Width="120"/>

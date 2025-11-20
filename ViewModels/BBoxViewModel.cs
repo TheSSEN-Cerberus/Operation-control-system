@@ -41,7 +41,7 @@ namespace Operation_Control_System.ViewModels
             set => SetProperty(ref _height, value);
         }
 
-        public string ClassLabel { get; }
+        public string Class { get; }
 
         public float Confidence { get; }
         public int Priority { get; }
@@ -77,8 +77,6 @@ namespace Operation_Control_System.ViewModels
             set => SetProperty(ref _targetLon, value);
         }
 
-        public ICommand ClickCommand { get; }
-        public event Action<int>? Clicked;
 
         public double CenterX => X + Width / 2.0 - 2;
         public double CenterY => Y + Height / 2.0 - 2;
@@ -86,10 +84,9 @@ namespace Operation_Control_System.ViewModels
         public BBoxViewModel(DetectedObject model, int frameWidth, int frameHeight)
         {
             Id = model.Id;
-            ClassLabel = model.Class;
+            Class = model.Class;
             Confidence = model.Confidence;
             Priority = model.Priority;
-            ClickCommand = new RelayCommand(() => Clicked?.Invoke(Id));
 
             // 초기 위치, 색상 설정
             UpdatePos(model, frameWidth, frameHeight);
@@ -111,10 +108,11 @@ namespace Operation_Control_System.ViewModels
 
         public void UpdateColor()
         {
-            if (IsTracked)
-                BoxColor = Brushes.Red;
-            else
-                BoxColor = Priority == 1 ? Brushes.Yellow : Brushes.LimeGreen;
+                BoxColor = Brushes.Yellow;
+            //if (IsTracked)
+            //    BoxColor = Brushes.Red;
+            //else
+            //    BoxColor = Priority == 1 ? Brushes.Yellow : Brushes.LimeGreen;
         }
     }
 }

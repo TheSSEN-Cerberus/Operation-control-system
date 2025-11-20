@@ -122,7 +122,7 @@ namespace Operation_Control_System.Services
                     dc.DrawRectangle(null, new Pen(box.BoxColor, 2), rect);
 
                     FormattedText text = new FormattedText(
-                        $"ID:{box.Id}",
+                        $"Class:{box.Class}",
                         System.Globalization.CultureInfo.InvariantCulture,
                         FlowDirection.LeftToRight,
                         new Typeface("Segoe UI"),

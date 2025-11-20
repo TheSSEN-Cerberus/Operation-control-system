@@ -124,14 +124,14 @@ namespace Operation_Control_System.ViewModels
 
             App.Current?.Dispatcher?.Invoke(() =>
             {
-                // 🔥 1. class == 0 만 남기기
+                // 🔥 1. class == 2 만 남기기
                 var filtered = bboxData.Objects
-                    .Where(o => o.Class == "0")
+                    .Where(o => o.Class == "2")
                     .ToList();
 
                 // 🔥 2. tank로 클래스명 변경
                 foreach (var obj in filtered)
-                    obj.Class = "tank";
+                    obj.Class = "Tank";
 
                 // 🔥 3. 기존 bbox 중 filtered에 없는 것은 제거
                 var newIds = filtered.Select(o => o.Id).ToHashSet();
