@@ -36,6 +36,19 @@ namespace Operation_Control_System.Services
             }
         }
 
+
+        private double _pitch;
+        public double Pitch
+        {
+            get => _pitch;
+            set
+            {
+                if (SetProperty(ref _pitch, value))
+                    HeadingChanged?.Invoke(value);
+            }
+        }
+
+
         public event Action<double>? HeadingChanged;
 
 

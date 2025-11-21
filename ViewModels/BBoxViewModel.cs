@@ -77,6 +77,13 @@ namespace Operation_Control_System.ViewModels
             set => SetProperty(ref _targetLon, value);
         }
 
+        private double? _targetAlt;
+        public double? TargetAlt
+        {
+            get => _targetAlt;
+            set => SetProperty(ref _targetAlt, value);
+        }
+
 
         public double CenterX => X + Width / 2.0 - 2;
         public double CenterY => Y + Height / 2.0 - 2;

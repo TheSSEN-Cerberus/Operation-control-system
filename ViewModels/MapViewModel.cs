@@ -38,6 +38,13 @@ namespace Operation_Control_System.ViewModels
             set => SetProperty(ref _longitude, value);
         }
 
+        private double _altitude;
+        public double Altitude
+        {
+            get => _altitude;
+            set => SetProperty(ref _altitude, value);
+        }
+
 
 
         private PointLatLng _mapCenter;
@@ -175,8 +182,9 @@ namespace Operation_Control_System.ViewModels
             var bbox = _shared.BBoxes.FirstOrDefault(b => b.Id == data.TargetId);
             int priority = bbox?.Priority ?? 0;
             double heading = _shared.Heading;
+            double pitch = _shared.Pitch;
 
-            var (lat, lon) = CalculateTargetPosition(Latitude, Longitude, heading, data.Distance);
+            var (lat, lon, alt) = CalculateTargetPosition3D(Latitude, Longitude, Altitude, heading, pitch, data.Distance);
             Debug.WriteLine("firereat :", lat, " ", lon);
             Application.Current?.Dispatcher?.Invoke(() =>
             {
@@ -184,6 +192,7 @@ namespace Operation_Control_System.ViewModels
                 {
                     bbox.TargetLat = lat;
                     bbox.TargetLon = lon;
+                    bbox.TargetAlt = alt;
                     UpdateTargetMarker(lat, lon, data.TargetId, priority);
                 }
             });
@@ -191,6 +200,26 @@ namespace Operation_Control_System.ViewModels
         }
 
         // --- 마커 업데이트 ---
+
+        public (double lat, double lon, double alt) CalculateTargetPosition3D(
+        double startLat, double startLon, double startAlt,
+        double headingDeg, double pitchDeg,
+        double distance)
+        {
+            double pitchRad = pitchDeg * Math.PI / 180.0;
+
+            // 수평 거리
+            double horizontal = distance * Math.Cos(pitchRad);
+
+            // 고도 차이
+            double dz = distance * Math.Sin(pitchRad);
+            double alt = startAlt + dz;
+
+            // 기존 lat/lon 계산 재사용
+            var (lat, lon) = CalculateTargetPosition(startLat, startLon, headingDeg, horizontal);
+
+            return (lat, lon, alt);
+        }
 
         public void UpdateTargetMarker(double lat, double lon, int id, int priority = 0)
         {

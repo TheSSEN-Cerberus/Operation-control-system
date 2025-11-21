@@ -119,10 +119,10 @@
                                 <DataGridTextColumn Header="Class" Binding="{Binding Class}" Width="70"/>
                                 <DataGridTextColumn Header="Conf" Binding="{Binding Confidence, StringFormat={}{0:P1}}" Width="70"/>
                                 <DataGridTextColumn Header="Priority" Binding="{Binding Priority}" Width="70"/>
-                                <DataGridTextColumn Header="Target Lat" Binding="{Binding TargetLat, StringFormat={}{0:F6}}" Width="120"/>
-                                <DataGridTextColumn Header="Target Lon" Binding="{Binding TargetLon, StringFormat={}{0:F6}}" Width="120"/>
+                                <DataGridTextColumn Header="Target Lat" Binding="{Binding TargetLat, StringFormat={}{0:F6}}" Width="*"/>
+                                <DataGridTextColumn Header="Target Lon" Binding="{Binding TargetLon, StringFormat={}{0:F6}}" Width="*"/>
+                                <DataGridTextColumn Header="Target Alt" Binding="{Binding TargetAlt, StringFormat={}{0:F6}}" Width="*"/>
                                
-
                             </DataGrid.Columns>
                         </DataGrid>
                     </ScrollViewer>
@@ -161,12 +161,30 @@
                     </StackPanel>
 
                     <!-- 오른쪽: 위도·경도 + 설정 버튼 -->
-                    <StackPanel Orientation="Horizontal" Grid.Column="1" HorizontalAlignment="Right">
+                    <!-- 오른쪽: 위도·경도·고도 + 설정 버튼 -->
+                    <Grid Grid.Column="1" Margin="5">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <!-- 위도 Label -->
+                            <ColumnDefinition Width="*"/>
+                            <!-- 위도 Text -->
+                            <ColumnDefinition Width="Auto"/>
+                            <!-- 경도 Label -->
+                            <ColumnDefinition Width="*"/>
+                            <!-- 경도 Text -->
+                            <ColumnDefinition Width="Auto"/>
+                            <!-- 고도 Label -->
+                            <ColumnDefinition Width="*"/>
+                            <!-- 고도 Text -->
+                            <ColumnDefinition Width="Auto"/>
+                            <!-- 버튼 -->
+                        </Grid.ColumnDefinitions>
 
-                        <TextBlock Text="위도:" VerticalAlignment="Center" Margin="5"/>
+                        <!-- 위도 -->
+                        <TextBlock Grid.Column="0" Text="위도:" VerticalAlignment="Center" Margin="5"/>
 
-                        <!-- TextBox: IsSet == false일 때 보임 -->
-                        <TextBox Text="{Binding Map.Latitude, Mode=TwoWay}" Width="100" Margin="5">
+                        <!-- 위도 입력 -->
+                        <TextBox Grid.Column="1" Text="{Binding Map.Latitude, Mode=TwoWay}" Margin="5">
                             <TextBox.Style>
                                 <Style TargetType="TextBox">
                                     <Setter Property="Visibility" Value="Visible"/>
@@ -179,13 +197,42 @@
                             </TextBox.Style>
                         </TextBox>
 
-                        <!-- TextBlock: IsSet == true일 때 보임 -->
-                        <TextBlock Text="{Binding Map.Latitude, StringFormat={}{0:F8}}" Width="100" Margin="5" VerticalAlignment="Center"
-                       Visibility="{Binding Map.IsSet, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                        <!-- 위도 표시 -->
+                        <TextBlock Grid.Column="1"
+               Text="{Binding Map.Latitude, StringFormat={}{0:F8}}"
+               Margin="5" VerticalAlignment="Center"
+               Visibility="{Binding Map.IsSet, Converter={StaticResource BoolToVisibilityConverter}}"/>
 
-                        <TextBlock Text="경도:" VerticalAlignment="Center" Margin="5"/>
 
-                        <TextBox Text="{Binding Map.Longitude, Mode=TwoWay}" Width="100" Margin="5">
+                        <!-- 경도 -->
+                        <TextBlock Grid.Column="2" Text="경도:" VerticalAlignment="Center" Margin="5"/>
+
+                        <!-- 경도 입력 -->
+                        <TextBox Grid.Column="3" Text="{Binding Map.Longitude, Mode=TwoWay}" Margin="5">
+                            <TextBox.Style>
+                                <Style TargetType="TextBox">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding Map.IsSet}" Value="True">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                            </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBox.Style>
+                        </TextBox>
+
+                        <!-- 경도 표시 -->
+                        <TextBlock Grid.Column="3"
+               Text="{Binding Map.Longitude, StringFormat={}{0:F8}}"
+               Margin="5" VerticalAlignment="Center"
+               Visibility="{Binding Map.IsSet, Converter={StaticResource BoolToVisibilityConverter}}"/>
+
+
+                        <!-- 고도 -->
+                        <TextBlock Grid.Column="4" Text="고도:" VerticalAlignment="Center" Margin="5"/>
+
+                        <!-- 고도 입력 -->
+                        <TextBox Grid.Column="5" Text="{Binding Map.Altitude, Mode=TwoWay}" Margin="5">
                             <TextBox.Style>
                                 <Style TargetType="TextBox">
                                     <Setter Property="Visibility" Value="Visible"/>
@@ -198,14 +245,21 @@
                             </TextBox.Style>
                         </TextBox>
 
-                        <TextBlock Text="{Binding Map.Longitude, StringFormat={}{0:F8}}" Width="100" Margin="5" VerticalAlignment="Center"
-                       Visibility="{Binding Map.IsSet, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                        <!-- 고도 표시 -->
+                        <TextBlock Grid.Column="5"
+               Text="{Binding Map.Altitude, StringFormat={}{0:F1}}"
+               Margin="5" VerticalAlignment="Center"
+               Visibility="{Binding Map.IsSet, Converter={StaticResource BoolToVisibilityConverter}}"/>
 
                         <!-- 설정 버튼 -->
-                        <Button Content="설정"
-                    Command="{Binding Map.SetStartPositionCommand}"
-                    Width="70" Margin="5"/>
-                    </StackPanel>
+                        <Button Grid.Column="6" Content="설정"
+            Command="{Binding Map.SetStartPositionCommand}"
+            Margin="5"/>
+                    </Grid>
+
+
+
+
                 </Grid>
             </GroupBox>
 
