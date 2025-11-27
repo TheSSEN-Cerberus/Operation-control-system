@@ -68,12 +68,10 @@ namespace Operation_Control_System.ViewModels
         private void ResetAllExceptNetwork()
         {
             // Control 상태 초기화
-            Control.IsLaserOn = false;
-            Control.IsAutoFire = false;
-            Control.SelectedOperationMode = "수동";
+            Control.IsLaserOn = true;
+            Control.IsAutoOperation = false;
             Control.TrackedTargetId = null;
             Control.CanFire = false;
-            Control.LastFireHit = null;
 
             // 임무장비 초기화
             if (Control.MovingState == 1)

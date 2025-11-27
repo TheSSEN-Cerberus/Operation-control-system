@@ -68,9 +68,6 @@ namespace Operation_Control_System.ViewModels
             _networkService.BBoxReceived += OnBBoxReceived;
             _networkService.FireReadyReceived += OnFireReadyReceived;
 
-            // ✅ 버튼 명령 초기화
-            TrackCommand = new RelayCommand(OnTrack);
-            UntrackCommand = new RelayCommand(OnUntrack);
 
 
             // ✅ 타임아웃 체크 타이머 (0.5초마다 검사)
@@ -121,51 +118,52 @@ namespace Operation_Control_System.ViewModels
             if (CurrentFrame == null || bboxData.Objects == null)
                 return;
 
-
             _lastBBoxTime = DateTime.UtcNow;
             int frameWidth = CurrentFrame.PixelWidth;
             int frameHeight = CurrentFrame.PixelHeight;
 
             App.Current?.Dispatcher?.Invoke(() =>
             {
-                // ① 현재 수신된 ID 목록
-                var newIds = bboxData.Objects.Select(o => o.Id).ToHashSet();
+                // 🔥 1. class == 0 만 남기기
+                var filtered = bboxData.Objects
+                    .Where(o => o.Class == "0")
+                    .ToList();
 
-                // ② 기존 중, 새 데이터에 없는 ID는 제거
+                // 🔥 2. tank로 클래스명 변경
+                foreach (var obj in filtered)
+                    obj.Class = "Tank";
+
+                // 🔥 3. 기존 bbox 중 filtered에 없는 것은 제거
+                var newIds = filtered.Select(o => o.Id).ToHashSet();
+
                 for (int i = _shared.BBoxes.Count - 1; i >= 0; i--)
                 {
                     if (!newIds.Contains(_shared.BBoxes[i].Id))
                         _shared.BBoxes.RemoveAt(i);
                 }
 
-                // ③ 새로 들어온/기존 객체 갱신
-                foreach (var model in bboxData.Objects)
+                // 🔥 4. 새 데이터 삽입 or 업데이트
+                foreach (var model in filtered)
                 {
                     var existing = _shared.BBoxes.FirstOrDefault(b => b.Id == model.Id);
                     if (existing != null)
                     {
-                        // 좌표, 색상 업데이트
                         existing.UpdatePos(model, frameWidth, frameHeight);
                         existing.UpdateColor();
                     }
                     else
                     {
                         var bboxVm = new BBoxViewModel(model, frameWidth, frameHeight);
-                        bboxVm.Clicked += OnBBoxClicked;
-                        // 새 객체 추가
                         _shared.BBoxes.Add(bboxVm);
                     }
                 }
-
-                // ④ 선택된 객체 정보 갱신 (예시)
-                SelectedBBoxInfo = $"탐지 객체 수: {_shared.BBoxes.Count}";
             });
         }
 
         // ✅ 일정 시간 미수신 시 Clear
         private void CheckBBoxTimeout()
         {
-            if ((DateTime.UtcNow - _lastBBoxTime).TotalMilliseconds > 300)
+            if ((DateTime.UtcNow - _lastBBoxTime).TotalMilliseconds > 1000)
             {
                 App.Current?.Dispatcher?.Invoke(() => _shared.BBoxes.Clear());
             }
@@ -185,74 +183,7 @@ namespace Operation_Control_System.ViewModels
             }
         }
 
-        public void OnBBoxClicked(int id)
-        {
-            // 수동 모드일 때만 추적 명령 전송
-            if (_controlViewModel.SelectedOperationMode == "수동")
-            {
-                _controlViewModel.TrackedTargetId = id;
 
-                var target = _shared.BBoxes.FirstOrDefault(x => x.Id == id);
-                if (target != null)
-                {
-                    // ✅ 클릭된 BBox의 추적 상태 업데이트
-                    target.IsTracked = true;
-
-                    Debug.WriteLine($"[VideoStream] 🖱️ BBox clicked → ID={id}, IsTracked=True");
-                }
-
-                _ = _networkService.SendAsync(new Message<TrackTargetData>
-                {
-                    Type = "track_target",
-                    Data = new TrackTargetData { TargetId = id }
-                });
-            }
-        }
-
-        // 🔸 추적 명령
-        private async void OnTrack(object? param)
-        {
-            if (_controlViewModel.SelectedOperationMode == "수동")
-            {
-                if (param is int id)
-                {
-                    var target = _shared.BBoxes.FirstOrDefault(x => x.Id == id);
-                    if (target != null)
-                    {
-                        target.IsTracked = true;
-
-                        await _networkService.SendAsync(new Message<TrackTargetData>
-                        {
-                            Type = "track_target",
-                            Data = new TrackTargetData { TargetId = id }
-                        });
-
-                        Debug.WriteLine($"[VideoStream] 🎯 Track start → ID={id}");
-                    }
-                }
-            }
-        }
-
-        // 🔸 추적 해제
-        private async void OnUntrack(object? param)
-        {
-            if (param is int id)
-            {
-                var target = _shared.BBoxes.FirstOrDefault(x => x.Id == id);
-                if (target != null)
-                {
-                    target.IsTracked = false;
-
-                    await _networkService.SendAsync(new Message<TrackReleaseData>
-                    {
-                        Type = "track_release",
-                        Data = new TrackReleaseData { TargetId= id }
-                    });
-
-                    System.Diagnostics.Debug.WriteLine($"[VideoStream] 🟢 Track released → ID={id}");
-                }
-            }
-        }
 
          //🔸 탐지 제거
 

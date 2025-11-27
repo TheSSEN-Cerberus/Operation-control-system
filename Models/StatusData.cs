@@ -6,5 +6,8 @@ namespace Operation_Control_System.Models
     {
         [JsonPropertyName("yaw")]
         public double Yaw { get; set; }
+
+        [JsonPropertyName("pitch")]
+        public double Pitch { get; set; }
     }
 }

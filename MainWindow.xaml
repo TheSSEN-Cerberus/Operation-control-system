@@ -39,13 +39,17 @@
                     <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
 
-                <Grid Grid.Row="0">
+                <Grid Grid.Row="0" Width="640" Height="480" HorizontalAlignment="Center">
 
-                    <Image Source="{Binding VideoStream.CurrentFrame}" Stretch="Uniform" HorizontalAlignment="Center" VerticalAlignment="Top"/>
-                <!-- 🎞 로딩 애니메이션 -->
+                    <Image Source="{Binding VideoStream.CurrentFrame}" Width="640" Height="480" Stretch="Fill" HorizontalAlignment="Center" VerticalAlignment="Top"/>
+                    <Ellipse Width="6" Height="6" Fill="Red"
+         Stroke="Black" StrokeThickness="1"
+         Panel.ZIndex="99"/>
+                    <!-- 🎞 로딩 애니메이션 -->
                 <Viewbox Stretch="Uniform"
          HorizontalAlignment="Center"
          VerticalAlignment="Top">
+                    
                 <Grid Visibility="{Binding VideoStream.CurrentFrame, Converter={StaticResource NullToVisibilityConverter}}"
               Background="#66000000"
               Width="640" Height="480"
@@ -72,18 +76,20 @@
                     </ItemsControl.ItemContainerStyle>
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <Border BorderBrush="{Binding BoxColor}" BorderThickness="2"
+                                <Canvas>
+                                    <Border BorderBrush="{Binding BoxColor}" BorderThickness="2"
                                     Width="{Binding Width}" Height="{Binding Height}"
                                     Background="#20FF0000">
-                                    <Border.InputBindings>
-                                        <MouseBinding Gesture="LeftClick" Command="{Binding ClickCommand}" />
-                                    </Border.InputBindings>
-                                    <StackPanel>
-                                    <TextBlock Text="{Binding Id}" Foreground="{StaticResource HUDYellow}" FontWeight="Bold"/>
-                                    <TextBlock Text="{Binding ClassLabel}" Foreground="White" FontSize="10"/>
-                                </StackPanel>
-                            </Border>
-                        </DataTemplate>
+                                        <Border.InputBindings>
+                                            <MouseBinding Gesture="LeftClick" Command="{Binding ClickCommand}" />
+                                        </Border.InputBindings>
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding Id}" Foreground="{StaticResource HUDYellow}" FontWeight="Bold"/>
+                                            <TextBlock Text="{Binding Class}" Foreground="White" FontSize="10"/>
+                                        </StackPanel>
+                                    </Border>
+                                </Canvas>
+                            </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
                 </Grid>
@@ -110,33 +116,13 @@
                             </DataGrid.Resources>
                             <DataGrid.Columns>
                                 <DataGridTextColumn Header="ID" Binding="{Binding Id}" Width="70" />
-                                <DataGridTextColumn Header="Class" Binding="{Binding ClassLabel}" Width="70"/>
+                                <DataGridTextColumn Header="Class" Binding="{Binding Class}" Width="70"/>
                                 <DataGridTextColumn Header="Conf" Binding="{Binding Confidence, StringFormat={}{0:P1}}" Width="70"/>
                                 <DataGridTextColumn Header="Priority" Binding="{Binding Priority}" Width="70"/>
-                                <DataGridTextColumn Header="Target Lat" Binding="{Binding TargetLat, StringFormat={}{0:F6}}" Width="120"/>
-                                <DataGridTextColumn Header="Target Lon" Binding="{Binding TargetLon, StringFormat={}{0:F6}}" Width="120"/>
-
-
-                                <!-- Control 버튼 컬럼 -->
-                                <DataGridTemplateColumn Header="Control" Width="*">
-                                    <DataGridTemplateColumn.CellTemplate>
-                                        <DataTemplate>
-                                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" >
-                                                <Button Content="추적"
-                                        Padding="6,2"
-                                        FontSize="12"
-                                        Command="{Binding DataContext.VideoStream.TrackCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                        CommandParameter="{Binding Id}"/>
-                                                <Button Content="추적해제"
-                                        Padding="6,2"
-                                        FontSize="12"
-                                        Command="{Binding DataContext.VideoStream.UntrackCommand, RelativeSource={RelativeSource AncestorType=Window}}"
-                                        CommandParameter="{Binding Id}"/>
-                                            </StackPanel>
-                                        </DataTemplate>
-                                    </DataGridTemplateColumn.CellTemplate>
-                                </DataGridTemplateColumn>
-
+                                <DataGridTextColumn Header="Target Lat" Binding="{Binding TargetLat, StringFormat={}{0:F6}}" Width="*"/>
+                                <DataGridTextColumn Header="Target Lon" Binding="{Binding TargetLon, StringFormat={}{0:F6}}" Width="*"/>
+                                <DataGridTextColumn Header="Target Alt" Binding="{Binding TargetAlt, StringFormat={}{0:F6}}" Width="*"/>
+                               
                             </DataGrid.Columns>
                         </DataGrid>
                     </ScrollViewer>
@@ -175,12 +161,30 @@
                     </StackPanel>
 
                     <!-- 오른쪽: 위도·경도 + 설정 버튼 -->
-                    <StackPanel Orientation="Horizontal" Grid.Column="1" HorizontalAlignment="Right">
+                    <!-- 오른쪽: 위도·경도·고도 + 설정 버튼 -->
+                    <Grid Grid.Column="1" Margin="5">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <!-- 위도 Label -->
+                            <ColumnDefinition Width="*"/>
+                            <!-- 위도 Text -->
+                            <ColumnDefinition Width="Auto"/>
+                            <!-- 경도 Label -->
+                            <ColumnDefinition Width="*"/>
+                            <!-- 경도 Text -->
+                            <ColumnDefinition Width="Auto"/>
+                            <!-- 고도 Label -->
+                            <ColumnDefinition Width="*"/>
+                            <!-- 고도 Text -->
+                            <ColumnDefinition Width="Auto"/>
+                            <!-- 버튼 -->
+                        </Grid.ColumnDefinitions>
 
-                        <TextBlock Text="위도:" VerticalAlignment="Center" Margin="5"/>
+                        <!-- 위도 -->
+                        <TextBlock Grid.Column="0" Text="위도:" VerticalAlignment="Center" Margin="5"/>
 
-                        <!-- TextBox: IsSet == false일 때 보임 -->
-                        <TextBox Text="{Binding Map.Latitude, Mode=TwoWay}" Width="100" Margin="5">
+                        <!-- 위도 입력 -->
+                        <TextBox Grid.Column="1" Text="{Binding Map.Latitude, Mode=TwoWay}" Margin="5">
                             <TextBox.Style>
                                 <Style TargetType="TextBox">
                                     <Setter Property="Visibility" Value="Visible"/>
@@ -193,13 +197,42 @@
                             </TextBox.Style>
                         </TextBox>
 
-                        <!-- TextBlock: IsSet == true일 때 보임 -->
-                        <TextBlock Text="{Binding Map.Latitude, StringFormat={}{0:F8}}" Width="100" Margin="5" VerticalAlignment="Center"
-                       Visibility="{Binding Map.IsSet, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                        <!-- 위도 표시 -->
+                        <TextBlock Grid.Column="1"
+               Text="{Binding Map.Latitude, StringFormat={}{0:F8}}"
+               Margin="5" VerticalAlignment="Center"
+               Visibility="{Binding Map.IsSet, Converter={StaticResource BoolToVisibilityConverter}}"/>
 
-                        <TextBlock Text="경도:" VerticalAlignment="Center" Margin="5"/>
 
-                        <TextBox Text="{Binding Map.Longitude, Mode=TwoWay}" Width="100" Margin="5">
+                        <!-- 경도 -->
+                        <TextBlock Grid.Column="2" Text="경도:" VerticalAlignment="Center" Margin="5"/>
+
+                        <!-- 경도 입력 -->
+                        <TextBox Grid.Column="3" Text="{Binding Map.Longitude, Mode=TwoWay}" Margin="5">
+                            <TextBox.Style>
+                                <Style TargetType="TextBox">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                    <Style.Triggers>
+                                        <DataTrigger Binding="{Binding Map.IsSet}" Value="True">
+                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                            </DataTrigger>
+                                    </Style.Triggers>
+                                </Style>
+                            </TextBox.Style>
+                        </TextBox>
+
+                        <!-- 경도 표시 -->
+                        <TextBlock Grid.Column="3"
+               Text="{Binding Map.Longitude, StringFormat={}{0:F8}}"
+               Margin="5" VerticalAlignment="Center"
+               Visibility="{Binding Map.IsSet, Converter={StaticResource BoolToVisibilityConverter}}"/>
+
+
+                        <!-- 고도 -->
+                        <TextBlock Grid.Column="4" Text="고도:" VerticalAlignment="Center" Margin="5"/>
+
+                        <!-- 고도 입력 -->
+                        <TextBox Grid.Column="5" Text="{Binding Map.Altitude, Mode=TwoWay}" Margin="5">
                             <TextBox.Style>
                                 <Style TargetType="TextBox">
                                     <Setter Property="Visibility" Value="Visible"/>
@@ -212,77 +245,94 @@
                             </TextBox.Style>
                         </TextBox>
 
-                        <TextBlock Text="{Binding Map.Longitude, StringFormat={}{0:F8}}" Width="100" Margin="5" VerticalAlignment="Center"
-                       Visibility="{Binding Map.IsSet, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                        <!-- 고도 표시 -->
+                        <TextBlock Grid.Column="5"
+               Text="{Binding Map.Altitude, StringFormat={}{0:F1}}"
+               Margin="5" VerticalAlignment="Center"
+               Visibility="{Binding Map.IsSet, Converter={StaticResource BoolToVisibilityConverter}}"/>
 
                         <!-- 설정 버튼 -->
-                        <Button Content="설정"
-                    Command="{Binding Map.SetStartPositionCommand}"
-                    Width="70" Margin="5"/>
-                    </StackPanel>
+                        <Button Grid.Column="6" Content="설정"
+            Command="{Binding Map.SetStartPositionCommand}"
+            Margin="5"/>
+                    </Grid>
+
+
+
+
                 </Grid>
             </GroupBox>
 
             <!-- 제어 모드 -->
             <GroupBox Header="CONTROL MODE" Grid.Row="1" Margin="0,0,0,5">
-                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                    <StackPanel Orientation="Horizontal" Margin="5">
-                        <TextBlock Text="레이저:" Margin="5"/>
-                        <ToggleButton Content="{Binding Control.LaserToggleText}" IsChecked="{Binding Control.IsLaserOn, Mode=TwoWay}" Width="80" Height="25"/>
+                <Grid Margin="10">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <!-- 🔹 레프트 / 레이저 제어 -->
+                    <StackPanel Grid.Column="0"
+                    Orientation="Horizontal"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Margin="0,0,20,0">
+
+                        <TextBlock Text="레이저:"
+                       Margin="5"
+                       VerticalAlignment="Center"
+                       FontWeight="SemiBold"/>
+
+                        <ToggleButton 
+                          Style="{StaticResource TacticalToggleButtonStyle}"
+                          Content="{Binding Control.LaserToggleText}"
+                          IsChecked="{Binding Control.IsLaserOn, Mode=TwoWay}"
+                          FontSize="20"
+                          Width="135" Height="40"
+                          Margin="5"/>
                     </StackPanel>
-                    <StackPanel Orientation="Horizontal" Margin="5">
-                        <TextBlock Text="격발:" Margin="5"/>
-                        <ToggleButton Content="{Binding Control.FireModeText}" IsChecked="{Binding Control.IsAutoFire, Mode=TwoWay}" Width="80" Height="25"/>
+
+                    <!-- 🔹 라이트 / 운용 모드 (수동/자동 전환) -->
+                    <StackPanel Grid.Column="1"
+                    Orientation="Horizontal"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    Margin="20,0,0,0">
+
+                        <TextBlock Text="운용:"
+                       Margin="5"
+                       VerticalAlignment="Center"
+                       FontWeight="SemiBold"/>
+
+                        <ToggleButton Content="{Binding Control.OperationModeText}"
+                                      Style="{StaticResource TacticalToggleButtonStyle}"
+                          IsChecked="{Binding Control.IsAutoOperation, Mode=TwoWay}"
+                          Width="135" Height="40"
+                          FontSize="20"
+                          Margin="5"/>
                     </StackPanel>
-                    <StackPanel Orientation="Horizontal" Margin="5">
-                        <TextBlock Text="운용:" Margin="5"/>
-                        <ComboBox ItemsSource="{Binding Control.OperationModes}"
-                                  SelectedItem="{Binding Control.SelectedOperationMode, Mode=TwoWay}"
-                                  Width="120"/>
-                    </StackPanel>
-                </StackPanel>
+                </Grid>
             </GroupBox>
+
 
             <!-- 표적 상태 -->
             <GroupBox Header="SHOTTING CONTROL" Grid.Row="2" Margin="0,0,0,5">
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="2*"/>
-                        <ColumnDefinition Width="*"/>
-                    </Grid.ColumnDefinitions>
 
-                    <!-- 🔹 왼쪽: 버튼 3개 (격발 / HIT / MISS) -->
-                    <UniformGrid Grid.Column="0" Columns="3" HorizontalAlignment="Stretch" VerticalAlignment="Center" Margin="10">
+                    <UniformGrid Columns="2" Margin="10">
                         <Button Content="격발"
-                    Command="{Binding Control.SendFireCommand}"
-                    IsEnabled="{Binding Control.CanFire}"
-                    FontWeight="Bold"
-                    Height="70"
-                    Margin="5"/>
+                        Command="{Binding Control.SendFireCommand}"
+                        FontSize="20"
+                        Height="40"
+                        Width="135"
+                        Margin="5"/>
 
-                        <Button Content="HIT"
-                    Command="{Binding Control.ConfirmKillCommand}"
-                    CommandParameter="true"
-                    FontWeight="Bold"
-                    Height="70"
-                    Margin="5"/>
-
-                        <Button Content="MISS"
-                    Command="{Binding Control.ConfirmKillCommand}"
-                    CommandParameter="false"
-                    FontWeight="Bold"
-                    Height="70"
-                    Margin="5"/>
-                    </UniformGrid>
 
                     <!-- 🔸 오른쪽: 비상정지 버튼 -->
-                    <StackPanel Grid.Column="1" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="5">
-                        <Button Content="⚠ 비상정지"
-                    Style="{StaticResource EmergencyButtonStyle}"
-                    Command="{Binding EmergencyStopCommand}"
-                    Width="135" Height="90"/>
-                    </StackPanel>
-                </Grid>
+                        <Button Content="비상정지"
+                        Style="{StaticResource EmergencyButtonStyle}"
+                        Command="{Binding EmergencyStopCommand}"
+                        Width="135" Height="40"/>
+                </UniformGrid>
             </GroupBox>
 
             <!-- 움직임 상태 -->

@@ -1,12 +1,16 @@
 ﻿using Gst;
 using Gst.App;
+using OpenCvSharp;
+using OpenCvSharp;
 using System;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 using System.Windows;
+using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Threading;
 using Debug = System.Diagnostics.Debug;
-
+using Size = OpenCvSharp.Size;
 namespace Operation_Control_System.Services
 {
     /// <summary>
@@ -15,6 +19,11 @@ namespace Operation_Control_System.Services
     /// </summary>
     public sealed class VideoStreamService : IDisposable
     {
+
+        private Mat? _prevGray = null;
+        private Mat? _prevStabilized = null;
+        private readonly object _cvLock = new();  // 스레드 안전
+
         private Pipeline? _pipeline;
         private AppSink? _appsink;
         private DispatcherTimer? _glibTimer;
@@ -59,11 +68,30 @@ namespace Operation_Control_System.Services
             Stop();
             _isRunning = true;
 
+            // H264
             string pipelineDesc =
-                $"udpsrc port={udpPort} " +
-                "caps=application/x-rtp,media=video,encoding-name=JPEG,payload=26,clock-rate=90000 ! " +
-                "rtpjpegdepay ! jpegdec ! videoconvert ! " +
-                "video/x-raw,format=BGRx ! appsink name=sink emit-signals=true max-buffers=1 drop=true";
+            $"udpsrc port={udpPort} caps=\"application/x-rtp, media=video, encoding-name=H264, payload=96\" ! " +
+            "rtph264depay ! " +
+            "h264parse ! avdec_h264 ! " +   // 또는 avdec_h264 대신 videotestdec 등 사용 가능
+            "videoconvert ! video/x-raw,format=BGRx ! " +
+            "appsink name=sink emit-signals=true max-buffers=1 drop=true sync=false";
+            // ver 1
+            //string pipelineDesc =
+            //    $"udpsrc port={udpPort} " +
+            //    "caps=application/x-rtp,media=video,encoding-name=JPEG,payload=26,clock-rate=90000 ! " +
+            //    "rtpjpegdepay ! jpegdec ! videoconvert ! " +
+            //    "video/x-raw,format=BGRx ! appsink name=sink emit-signals=true max-buffers=1 drop=true";
+
+            // ver2
+            //string pipelineDesc =
+            //    $"udpsrc port={udpPort} buffer-size=4096 ! "
+            //  + "caps=application/x-rtp,media=video,encoding-name=JPEG,payload=26,clock-rate=90000 ! "
+            //  + "rtpjpegdepay latency=0 ! jpegdec ! videoconvert ! "
+            //  + "video/x-raw,format=BGRx ! "
+            //  + "appsink name=sink emit-signals=true max-buffers=1 drop=true sync=false";
+
+
+            // 테스트 용
             //        string pipelineDesc =
             //$"udpsrc port={udpPort} " +
             //"caps=application/x-rtp,media=video,encoding-name=H264,payload=96,clock-rate=90000 ! " +
@@ -105,9 +133,7 @@ namespace Operation_Control_System.Services
             _glibTimer.Start();
         }
 
-        /// <summary>
-        /// [4] AppSink 프레임 수신 콜백
-        /// </summary>
+        // 안정화 X 버전
         private void OnNewSample(object sender, EventArgs args)
         {
             //System.Diagnostics.Debug.WriteLine($"이미지 수신중");
@@ -158,6 +184,12 @@ namespace Operation_Control_System.Services
                 _frameCount = 0;
             }
         }
+        /// <summary>
+        /// [4] AppSink 프레임 수신 콜백 (안정화 버전)
+        /// </summary>
+   
+
+
 
         /// <summary>
         /// [5] 정지 및 해제

@@ -38,6 +38,13 @@ namespace Operation_Control_System.ViewModels
             set => SetProperty(ref _longitude, value);
         }
 
+        private double _altitude;
+        public double Altitude
+        {
+            get => _altitude;
+            set => SetProperty(ref _altitude, value);
+        }
+
 
 
         private PointLatLng _mapCenter;
@@ -74,13 +81,20 @@ namespace Operation_Control_System.ViewModels
 
         public MapViewModel(NetworkService networkService, SharedStateService shared)
         {
-            Latitude = 37.4807667;
-            Longitude = 126.8778012;
+            // 가산 어반워크2
+            //Latitude = 37.4807667;
+            //Longitude = 126.8778012;
+
+            // 넥스원 판교하우스
+            Latitude = 37.4049098;
+            Longitude = 127.1113313;
+
 
             _shared = shared;
             _networkService = networkService;
             _networkService.StatusReceived += OnStatusReceived;
             _networkService.FireReadyReceived += OnFireReadyReceived;
+            _networkService.FireDoneReceived += OnFireDoneReceived;
 
             MapCenter = new PointLatLng(Latitude, Longitude);
             SetStartPositionCommand = new RelayCommand(OnSetStartPosition);
@@ -121,19 +135,86 @@ namespace Operation_Control_System.ViewModels
                 _mapControl.Position = MapCenter;
         }
 
+        private void OnFireDoneReceived(FireDoneData data)
+        {
+            Application.Current?.Dispatcher?.Invoke(() =>
+            {
+                if (_targetMarkers.TryGetValue(data.TargetId, out var circle))
+                {
+                    // circle 제거
+                    _mapControl.Markers.Remove(circle);
+                    _targetMarkers.Remove(data.TargetId);
+
+                    var point = circle.Position;
+
+                    // X 마커 생성
+                    var xMarker = new GMapMarker(point)
+                    {
+                        Shape = CreateXShape(),
+                        Offset = new Point(-6, -6),
+                        ZIndex = 11
+                    };
+
+                    _mapControl.Markers.Add(xMarker);
+
+                    Debug.WriteLine($"[Map] ❌ Target {data.TargetId} DONE at {point.Lat}, {point.Lng}");
+                }
+                else
+                {
+                    Debug.WriteLine($"[Map] ⚠ No READY circle found for {data.TargetId}");
+                }
+            });
+        }
+        //private void OnFireDoneReceived(FireDoneData data)
+        //{
+        //    Application.Current?.Dispatcher?.BeginInvoke(() =>
+        //    {
+        //        var bbox = _shared.BBoxes.FirstOrDefault(b => b.Id == data.TargetId);
+        //        if (bbox == null || bbox.TargetLat == null || bbox.TargetLon == null)
+        //        {
+        //            Debug.WriteLine($"[Map] ⚠ Target {data.TargetId} has no saved position");
+        //            return;
+        //        }
+
+        //        double lat = bbox.TargetLat.Value;
+        //        double lon = bbox.TargetLon.Value;
+
+        //        // X 마커 새로 생성
+        //        var xMarker = new GMapMarker(new PointLatLng(lat, lon))
+        //        {
+        //            Shape = CreateXShape(),
+        //            Offset = new System.Windows.Point(-6, -6),
+        //            ZIndex = 10
+        //        };
+
+        //        _mapControl.Markers.Add(xMarker);
+        //        Debug.WriteLine($"[Map] ❌ Target {data.TargetId} marked at {lat},{lon}");
+        //    });
+        //}
+
         private void OnStatusReceived(StatusData data)
         {
-            if(data.Yaw >= 0)
-                _shared.Heading = data.Yaw;
-            else
-            {
-                _shared.Heading = 360 + data.Yaw;
-            }
+            double yaw = data.Yaw;    // -180 ~ +180
+
+            // 1) -180~180 -> 0~360 (East=0, CCW)
+            double yawE = (yaw + 360.0) % 360.0;
+
+            // 2) CCW -> CW (좌우 반전)
+            double yawCW = (360.0 - yawE) % 360.0;
+
+            double pitch = data.Pitch;
+            _shared.Pitch = pitch;   
+
+            // 3) East=0 -> North=0 (지도 기준으로 회전축 변환)
+            _shared.Heading = (yawCW + 90.0) % 360.0;
             if (!_headingInitialized)
             {
                 _headingInitialized = true;
                 _robotHeading = _shared.Heading;
+                Debug.WriteLine("[Init] heading: ", _robotHeading, " yaw:", data.Yaw);
+
             }
+
 
             Application.Current?.Dispatcher?.BeginInvoke(() =>
             {
@@ -148,16 +229,19 @@ namespace Operation_Control_System.ViewModels
             var bbox = _shared.BBoxes.FirstOrDefault(b => b.Id == data.TargetId);
             int priority = bbox?.Priority ?? 0;
             double heading = _shared.Heading;
+            double pitch = _shared.Pitch;
 
-            var (lat, lon) = CalculateTargetPosition(Latitude, Longitude, heading, data.Distance);
-            Debug.WriteLine("firereat :", lat, " ", lon);
+            var (lat, lon, alt) = CalculateTargetPosition3D(Latitude, Longitude, Altitude, heading, pitch, data.Distance);
+            Debug.WriteLine($"pitch: {pitch}, dist: {data.Distance}");
+
             Application.Current?.Dispatcher?.Invoke(() =>
             {
                 if(bbox!= null)
                 {
                     bbox.TargetLat = lat;
                     bbox.TargetLon = lon;
-                    UpdateTargetMarker(lat, lon, data.TargetId, priority);
+                    bbox.TargetAlt = alt;
+                    UpdateTargetMarker(lat, lon, data.TargetId);
                 }
             });
 
@@ -165,19 +249,41 @@ namespace Operation_Control_System.ViewModels
 
         // --- 마커 업데이트 ---
 
-        public void UpdateTargetMarker(double lat, double lon, int id, int priority = 0)
+        public (double lat, double lon, double alt) CalculateTargetPosition3D(
+        double startLat, double startLon, double startAlt,
+        double headingDeg, double pitchDeg,
+        double distance)
+        {
+            // pitch 정의 보정: 위(+), 아래(-)로 변환 
+            double pitchRad = (-pitchDeg) * Math.PI / 180.0;
+            double distanceCm = distance / 100;
+            // 수평 거리
+            double horizontal = distance * Math.Cos(pitchRad);
+
+            // 고도 차이
+            double dz = distanceCm * Math.Sin(pitchRad);
+            double alt = startAlt + dz;
+
+            // 기존 lat/lon 계산 재사용
+            var (lat, lon) = CalculateTargetPosition(startLat, startLon, headingDeg, horizontal);
+
+            return (lat, lon, alt);
+        }
+
+
+        public void UpdateTargetMarker(double lat, double lon, int id)
         {
             var point = new PointLatLng(lat, lon);
 
-            // 기존 마커 있으면 갱신
-            if (_targetMarkers.TryGetValue(id, out var existing))
+            // 기존 마커 업데이트
+            if (_targetMarkers.TryGetValue(id, out var marker))
             {
-                _mapControl?.Markers.Remove(existing);
-                _targetMarkers.Remove(id);
+                marker.Position = point;   // ⭐ 위치만 갱신
+                return;
             }
 
-
-            var marker = new GMapMarker(point)
+            // 새 마커 생성
+            var newMarker = new GMapMarker(point)
             {
                 Shape = new Ellipse
                 {
@@ -191,10 +297,8 @@ namespace Operation_Control_System.ViewModels
                 ZIndex = 2
             };
 
-            _targetMarkers[id] = marker;
-            _mapControl?.Markers.Add(marker);
-
-            Debug.WriteLine($"[Map] 🎯 Target {id} marker added at {lat:F6}, {lon:F6} (priority={priority})");
+            _targetMarkers[id] = newMarker;
+            _mapControl?.Markers.Add(newMarker);
         }
         private void UpdateHeadingMarker()
         {
@@ -274,6 +378,7 @@ namespace Operation_Control_System.ViewModels
         }
 
 
+
         private PointLatLng CalculateTargetPoint(PointLatLng origin, double headingDeg, double distanceMeters)
         {
             const double EarthRadius = 6378137.0; // m
@@ -304,6 +409,17 @@ namespace Operation_Control_System.ViewModels
                                             Math.Cos(distanceCm / EarthRadius) - Math.Sin(lat1) * Math.Sin(lat2));
 
             return (lat2 * 180.0 / Math.PI, lon2 * 180.0 / Math.PI);
+        }
+
+
+        private FrameworkElement CreateXShape()
+        {
+            return new Path
+            {
+                Stroke = Brushes.Red,
+                StrokeThickness = 3,
+                Data = Geometry.Parse("M -6 -6 L 6 6 M -6 6 L 6 -6")
+            };
         }
 
         private void OnSetStartPosition()
