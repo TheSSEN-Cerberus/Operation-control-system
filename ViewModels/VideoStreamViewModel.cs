@@ -124,9 +124,9 @@ namespace Operation_Control_System.ViewModels
 
             App.Current?.Dispatcher?.Invoke(() =>
             {
-                // 🔥 1. class == 2 만 남기기
+                // 🔥 1. class == 0 만 남기기
                 var filtered = bboxData.Objects
-                    .Where(o => o.Class == "2")
+                    .Where(o => o.Class == "0")
                     .ToList();
 
                 // 🔥 2. tank로 클래스명 변경

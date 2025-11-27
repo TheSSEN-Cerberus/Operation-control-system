@@ -96,7 +96,6 @@ namespace Operation_Control_System.Services
         private void OnDataReceived(byte[] data, IPEndPoint sender)
         {
             string json = Encoding.UTF8.GetString(data);
-            Debug.WriteLine($"[Network] Received from {sender}: {json}");
 
             try
             {
@@ -115,6 +114,7 @@ namespace Operation_Control_System.Services
                 {
                     case "status":
                         var statusMsg = JsonSerializer.Deserialize<Message<StatusData>>(json);
+                        Debug.WriteLine(json);
                         if (statusMsg?.Data != null)
                         {
                             _lastHeartbeat = DateTime.UtcNow;

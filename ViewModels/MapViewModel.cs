@@ -81,8 +81,14 @@ namespace Operation_Control_System.ViewModels
 
         public MapViewModel(NetworkService networkService, SharedStateService shared)
         {
-            Latitude = 37.4807667;
-            Longitude = 126.8778012;
+            // 가산 어반워크2
+            //Latitude = 37.4807667;
+            //Longitude = 126.8778012;
+
+            // 넥스원 판교하우스
+            Latitude = 37.4049098;
+            Longitude = 127.1113313;
+
 
             _shared = shared;
             _networkService = networkService;
@@ -131,21 +137,60 @@ namespace Operation_Control_System.ViewModels
 
         private void OnFireDoneReceived(FireDoneData data)
         {
-            Application.Current?.Dispatcher?.BeginInvoke(() =>
+            Application.Current?.Dispatcher?.Invoke(() =>
             {
-                if (_targetMarkers.TryGetValue(data.TargetId, out var marker))
+                if (_targetMarkers.TryGetValue(data.TargetId, out var circle))
                 {
-                    marker.Shape = CreateXShape();
-                    marker.ZIndex = 5;
+                    // circle 제거
+                    _mapControl.Markers.Remove(circle);
+                    _targetMarkers.Remove(data.TargetId);
 
-                    Debug.WriteLine($"[Map] ❌ Target {data.TargetId} marked as DONE");
+                    var point = circle.Position;
+
+                    // X 마커 생성
+                    var xMarker = new GMapMarker(point)
+                    {
+                        Shape = CreateXShape(),
+                        Offset = new Point(-6, -6),
+                        ZIndex = 11
+                    };
+
+                    _mapControl.Markers.Add(xMarker);
+
+                    Debug.WriteLine($"[Map] ❌ Target {data.TargetId} DONE at {point.Lat}, {point.Lng}");
                 }
                 else
                 {
-                    Debug.WriteLine($"[Map] ⚠ Target {data.TargetId} not found for DONE marking");
+                    Debug.WriteLine($"[Map] ⚠ No READY circle found for {data.TargetId}");
                 }
             });
         }
+        //private void OnFireDoneReceived(FireDoneData data)
+        //{
+        //    Application.Current?.Dispatcher?.BeginInvoke(() =>
+        //    {
+        //        var bbox = _shared.BBoxes.FirstOrDefault(b => b.Id == data.TargetId);
+        //        if (bbox == null || bbox.TargetLat == null || bbox.TargetLon == null)
+        //        {
+        //            Debug.WriteLine($"[Map] ⚠ Target {data.TargetId} has no saved position");
+        //            return;
+        //        }
+
+        //        double lat = bbox.TargetLat.Value;
+        //        double lon = bbox.TargetLon.Value;
+
+        //        // X 마커 새로 생성
+        //        var xMarker = new GMapMarker(new PointLatLng(lat, lon))
+        //        {
+        //            Shape = CreateXShape(),
+        //            Offset = new System.Windows.Point(-6, -6),
+        //            ZIndex = 10
+        //        };
+
+        //        _mapControl.Markers.Add(xMarker);
+        //        Debug.WriteLine($"[Map] ❌ Target {data.TargetId} marked at {lat},{lon}");
+        //    });
+        //}
 
         private void OnStatusReceived(StatusData data)
         {
@@ -157,6 +202,9 @@ namespace Operation_Control_System.ViewModels
             // 2) CCW -> CW (좌우 반전)
             double yawCW = (360.0 - yawE) % 360.0;
 
+            double pitch = data.Pitch;
+            _shared.Pitch = pitch;   
+
             // 3) East=0 -> North=0 (지도 기준으로 회전축 변환)
             _shared.Heading = (yawCW + 90.0) % 360.0;
             if (!_headingInitialized)
@@ -166,7 +214,6 @@ namespace Operation_Control_System.ViewModels
                 Debug.WriteLine("[Init] heading: ", _robotHeading, " yaw:", data.Yaw);
 
             }
-            //Debug.WriteLine("[Update] heading: ", _robotHeading, " yaw:", data.Yaw);
 
 
             Application.Current?.Dispatcher?.BeginInvoke(() =>
@@ -185,7 +232,8 @@ namespace Operation_Control_System.ViewModels
             double pitch = _shared.Pitch;
 
             var (lat, lon, alt) = CalculateTargetPosition3D(Latitude, Longitude, Altitude, heading, pitch, data.Distance);
-            Debug.WriteLine("firereat :", lat, " ", lon);
+            Debug.WriteLine($"pitch: {pitch}, dist: {data.Distance}");
+
             Application.Current?.Dispatcher?.Invoke(() =>
             {
                 if(bbox!= null)
@@ -193,7 +241,7 @@ namespace Operation_Control_System.ViewModels
                     bbox.TargetLat = lat;
                     bbox.TargetLon = lon;
                     bbox.TargetAlt = alt;
-                    UpdateTargetMarker(lat, lon, data.TargetId, priority);
+                    UpdateTargetMarker(lat, lon, data.TargetId);
                 }
             });
 
@@ -206,13 +254,14 @@ namespace Operation_Control_System.ViewModels
         double headingDeg, double pitchDeg,
         double distance)
         {
-            double pitchRad = pitchDeg * Math.PI / 180.0;
-
+            // pitch 정의 보정: 위(+), 아래(-)로 변환 
+            double pitchRad = (-pitchDeg) * Math.PI / 180.0;
+            double distanceCm = distance / 100;
             // 수평 거리
             double horizontal = distance * Math.Cos(pitchRad);
 
             // 고도 차이
-            double dz = distance * Math.Sin(pitchRad);
+            double dz = distanceCm * Math.Sin(pitchRad);
             double alt = startAlt + dz;
 
             // 기존 lat/lon 계산 재사용
@@ -221,19 +270,20 @@ namespace Operation_Control_System.ViewModels
             return (lat, lon, alt);
         }
 
-        public void UpdateTargetMarker(double lat, double lon, int id, int priority = 0)
+
+        public void UpdateTargetMarker(double lat, double lon, int id)
         {
             var point = new PointLatLng(lat, lon);
 
-            // 기존 마커 있으면 갱신
-            if (_targetMarkers.TryGetValue(id, out var existing))
+            // 기존 마커 업데이트
+            if (_targetMarkers.TryGetValue(id, out var marker))
             {
-                _mapControl?.Markers.Remove(existing);
-                _targetMarkers.Remove(id);
+                marker.Position = point;   // ⭐ 위치만 갱신
+                return;
             }
 
-
-            var marker = new GMapMarker(point)
+            // 새 마커 생성
+            var newMarker = new GMapMarker(point)
             {
                 Shape = new Ellipse
                 {
@@ -247,10 +297,8 @@ namespace Operation_Control_System.ViewModels
                 ZIndex = 2
             };
 
-            _targetMarkers[id] = marker;
-            _mapControl?.Markers.Add(marker);
-
-            Debug.WriteLine($"[Map] 🎯 Target {id} marker added at {lat:F6}, {lon:F6} (priority={priority})");
+            _targetMarkers[id] = newMarker;
+            _mapControl?.Markers.Add(newMarker);
         }
         private void UpdateHeadingMarker()
         {
@@ -370,8 +418,7 @@ namespace Operation_Control_System.ViewModels
             {
                 Stroke = Brushes.Red,
                 StrokeThickness = 3,
-                Data = Geometry.Parse("M -6 -6 L 6 6 M -6 6 L 6 -6"),
-                RenderTransform = new TranslateTransform(-6, -6)
+                Data = Geometry.Parse("M -6 -6 L 6 6 M -6 6 L 6 -6")
             };
         }
 

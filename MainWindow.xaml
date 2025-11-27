@@ -85,7 +85,7 @@
                                         </Border.InputBindings>
                                         <StackPanel>
                                             <TextBlock Text="{Binding Id}" Foreground="{StaticResource HUDYellow}" FontWeight="Bold"/>
-                                            <TextBlock Text="{Binding ClassLabel}" Foreground="White" FontSize="10"/>
+                                            <TextBlock Text="{Binding Class}" Foreground="White" FontSize="10"/>
                                         </StackPanel>
                                     </Border>
                                 </Canvas>
